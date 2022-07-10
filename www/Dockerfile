@@ -1,5 +1,7 @@
 FROM node:16-alpine
 
+USER node
+
 WORKDIR /home/node/src
 COPY package*.json .
 RUN npm clean-install
