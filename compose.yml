@@ -1,0 +1,15 @@
+services:
+  www:
+    build: ./www
+    ports:
+      - 3000
+  api:
+    build: ./api
+    ports:
+      - 5000
+    environment:
+      - DATABASE_URL=postgres://postgres:123@database/postgres
+  database:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_PASSWORD=123

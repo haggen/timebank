@@ -1,0 +1,23 @@
+services:
+  proxy:
+    profiles:
+      - proxy
+    image: traefik:2.8
+    ports:
+      - 80:80
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+    command:
+      - --providers.docker.defaultrule=Host(`{{ normalize .Name }}.localhost`)
+      - --api.insecure=true
+  www:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./www:/home/node/src
+  api:
+    environment:
+      - PYTHON_ENV=development
+    volumes:
+      - ./api:/root/src
