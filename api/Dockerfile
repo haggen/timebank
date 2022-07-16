@@ -1,11 +1,14 @@
 FROM python:3-alpine
 
+RUN pip install pipenv
+ENV PIPENV_VENV_IN_PROJECT=1
+
 WORKDIR /root/src
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY Pipfile* .
+RUN pipenv install
 
 EXPOSE 5000
 
 COPY . .
 
-CMD ["python", "main.py"]
+CMD ["pipenv", "run", "python", "src/main.py"]
