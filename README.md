@@ -21,13 +21,19 @@ For development you'll need to merge the development file and include `proxy` pr
 $ docker compose -f compose.yml -f compose.development.yml --profile proxy up
 ```
 
-ℹ️ See `compose.yml` and `compose.development.yml` for available configuration.
+> ℹ️ See `compose.yml` and `compose.development.yml` for available configuration.
 
 Finally you can visit http://www-timebank.localhost to see it in action.
 
-⚠️ The `proxy` profile assumes that ports `80` and `8080` are available and that you're using a browser that translates `*.localhost` to `127.0.0.1`. If this isn't the case you'll need to customize things or run it locally.
+> ⚠️ The `proxy` profile assumes that ports `80` and `8080` are available and that you're using a browser that translates `*.localhost` to `127.0.0.1`. If this isn't the case you'll need to customize things or run it locally.
 
 ## Local development
+
+You'll need:
+
+1. Python v3.10+ with pipenv v2022+.
+2. Node.js v16+ with npm v8+.
+3. PostgreSQL v14+.
 
 Copy `example.env` as `.env` inside each application's directory.
 
@@ -36,27 +42,22 @@ $ cp www/example.env www/.env
 $ cp api/example.env api/.env
 ```
 
-Spin up a PostgreSQL v14+ and adjust the `DATABASE_URL` in `api/.env` accordingly.
+Spin up your database and adjust the `DATABASE_URL` in `api/.env` accordingly.
 
-Setup a virtual environment for Python, activate it and install dependencies.
-
-```sh
-$ python -m venv api/.venv
-$ source api/.venv/bin/activate
-$ python -m pip install -r api/requirements.txt
-```
-
-Start the back-end application.
+Inside the `api` directory, prepare and run the back-end application.
 
 ```sh
-$ cd api; env $(cat .env | xargs) python main.py
+$ pipenv install
+$ env $(cat .env | xargs) pipenv run python src/main.py
 ```
 
-Start the front-end application.
+Inside the `www` directory, start the front-end application.
 
 ```sh
-$ cd www; env $(cat .env | xargs) npm start
+$ env $(cat .env | xargs) npm start
 ```
+
+> 💡 The `env $(cat .env | xargs)` part loads the configuration.
 
 ## Legal
 
