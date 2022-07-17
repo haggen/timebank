@@ -11,13 +11,8 @@ services:
     command:
       - --providers.docker.defaultrule=Host(`{{ normalize .Name }}.localhost`)
       - --api.insecure=true
-  www:
+  web:
     environment:
-      - NODE_ENV=development
+      - DEBUG=True
     volumes:
-      - ./www:/home/node/src
-  api:
-    environment:
-      - PYTHON_ENV=development
-    volumes:
-      - ./api:/root/src
+      - .:/root/src

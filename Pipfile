@@ -4,9 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-fastapi = "*"
+starlette = "*"
 uvicorn = "*"
-sqlalchemy = "*"
+jinja2 = "*"
+databases = {extras = ["asyncpg"], version = "*"}
 
 [dev-packages]
 black = "*"
