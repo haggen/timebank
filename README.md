@@ -22,6 +22,14 @@ Finally you can visit http://web-timebank.localhost to see it in action.
 
 > ⚠️ The `proxy` profile assumes that ports `80` and `8080` are available and that you're using a browser that translates `*.localhost` to `127.0.0.1`. If this isn't the case you'll need to customize things or run it locally.
 
+If you need to install additional packages, I suggest you update your `Pipfile` locally and then run:
+
+```sh
+$ docker compose -f compose.yml -f compose.development.yml exec web pipenv install --system
+```
+
+This way your editor has access to the source files and can use autocomplete.
+
 ## Local development
 
 You'll need:
@@ -46,10 +54,8 @@ $ pipenv install
 Boot up the application.
 
 ```sh
-$ env $(cat .env | xargs) pipenv run python src/main.py
+$ pipenv run src/main.py
 ```
-
-> 💡 The `env $(cat .env | xargs)` part loads the environment configuration.
 
 ## Legal
 
