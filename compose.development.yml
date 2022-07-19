@@ -14,5 +14,6 @@ services:
   web:
     environment:
       - DEBUG=True
+      - SESSION_KEY=a824c3699806eb21
     volumes:
       - .:/root/src

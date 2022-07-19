@@ -8,6 +8,8 @@ starlette = "*"
 uvicorn = "*"
 jinja2 = "*"
 databases = {extras = ["asyncpg"], version = "*"}
+itsdangerous = "*"
+python-multipart = "*"
 
 [dev-packages]
 black = "*"
