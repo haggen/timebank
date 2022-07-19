@@ -5,21 +5,16 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/static/style.css" />
+    {% block head %}
     <title>Banco de Horas</title>
+    {% endblock %}
   </head>
   <body>
-    <h1>Banco de Horas</h1>
-
-    <main>
-      <table>
-      <tbody>
-        {% for employee in employees %}
-        <tr>
-          <th>{{ employee.name }}</th>
-        </tr>
-        {% endfor %}
-      </tbody>
-      </table>
-    </main>
+    <div class="layout">
+      <h1>Banco de Horas</h1>
+      {% with f = request.flash() %}
+      <p class="{{ f.type }}">{{ f.message }}</p>
+      {% endwith %} {% block content %}{% endblock %}
+    </div>
   </body>
 </html>
