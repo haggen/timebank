@@ -7,6 +7,6 @@ create table if not exists entries (
     employee_id integer not null,
     created_at timestamptz not null default now(),
     expires_at timestamptz not null,
-    initial_value integer not null,
-    spare_value integer not null
+    value integer not null,
+    balance integer not null
 );

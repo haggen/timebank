@@ -41,6 +41,11 @@ input[type="number"] {
 
 ::-webkit-file-upload-button {
   all: unset;
+  display: none;
+}
+
+input[type="file"] {
+  line-height: 2;
 }
 
 ::-webkit-search-cancel-button,
@@ -220,13 +225,190 @@ table {
   cursor: not-allowed;
 }
 
-.layout {
-  display: grid;
-  margin: 3rem auto;
-  width: min(100%, 640px);
+[hidden] {
+  display: none;
 }
 
-.warning {
-  color: goldenrod;
-  font-size: 1.25rem;
+/* --- */
+
+html,
+body {
+  height: 100%;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* --- */
+
+.alert {
+  align-items: start;
+  background-color: white;
+  border-radius: 0.25rem;
+  border: 1px solid currentColor;
+  display: flex;
+  margin: 1.5rem auto 0;
+  padding: 0.75rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: min(calc(100% - 1.5rem), 45ch);
+  z-index: 10;
+}
+
+.alert.neutral {
+  color: olive;
+  background-color: ivory;
+}
+
+.alert.positive {
+  color: darkgreen;
+  background-color: azure;
+}
+
+.alert button {
+  padding: 0.25rem;
+  line-height: 1;
+}
+
+/* --- */
+
+.layout {
+  display: grid;
+  grid-auto-rows: min-content;
+  height: 100%;
+  margin-inline: auto;
+  width: min(calc(100% - 1.5rem), 1024px);
+}
+
+/* --- */
+
+.topbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 3rem;
+  height: 6rem;
+  justify-content: space-between;
+}
+
+.topbar h1 {
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.topbar ul {
+  align-items: center;
+  display: flex;
+  gap: 1.5rem;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.topbar ul a {
+}
+
+.topbar .active {
+  color: royalblue;
+}
+
+/* --- */
+
+.footer {
+  height: 6rem;
+  padding-block: 1.5rem;
+  position: sticky;
+  text-align: center;
+  top: 100%;
+}
+
+/* --- */
+
+.content {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* --- */
+
+.menu li {
+  display: block;
+}
+
+.menu .active {
+  color: royalblue;
+}
+
+.menu a {
+  align-items: center;
+  display: flex;
+  height: 2rem;
+  padding-inline: 0.75rem;
+}
+
+/* --- */
+
+.hero {
+  font-size: 1.5em;
+  text-align: center;
+  padding: 3rem;
+}
+
+/* --- */
+
+.columns {
+  display: grid;
+  grid-auto-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .columns {
+    grid-auto-flow: column;
+  }
+}
+
+/* --- */
+
+.table {
+  width: 100%;
+}
+
+.table :is(td, th) {
+  height: 2rem;
+  padding-inline: 0.75rem;
+  vertical-align: middle;
+}
+
+.table thead th {
+  border-bottom: 2px solid gainsboro;
+  font-weight: bolder;
+}
+
+.table tbody tr:nth-child(even) :is(td, th) {
+  background-color: whitesmoke;
+}
+
+/* --- */
+
+.field,
+.button {
+  align-items: center;
+  border-radius: 0.25rem;
+  display: inline-flex;
+  height: 2rem;
+  padding: 0 0.5rem;
+}
+
+.field {
+  background-color: white;
+  border: 1px solid dimgray;
+}
+
+.button {
+  background-color: royalblue;
+  color: white;
+  padding: 0 0.75rem;
 }

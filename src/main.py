@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import csv, datetime, io
+from http.client import HTTPException
 
 from databases import Database, DatabaseURL
 
@@ -31,13 +32,40 @@ templates = Jinja2Templates(directory="templates", auto_reload=DEBUG)
 # Connect to the database.
 database = Database(DATABASE_URL)
 
+# Useful when you're mixing database records and dicts.
+class Record(dict):
+    """
+    Extends dict to support attribute-style access.
+    """
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(key)
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+
 # Dashboard endpoint.
 class Dashboard(HTTPEndpoint):
     async def get(self, request: Request):
-        employees = await database.fetch_all("SELECT * FROM employees;")
+        employees = await database.fetch_all("SELECT name FROM employees;")
+
+        entries = await database.fetch_all(
+            """
+            SELECT employees.name AS employee, SUM(entries.balance) AS balance 
+            FROM entries 
+            JOIN employees ON entries.employee_id = employees.id 
+            WHERE entries.expires_at > current_date
+            GROUP BY employees.name;
+            """
+        )
 
         return templates.TemplateResponse(
-            "index.html", {"request": request, "employees": employees}
+            "dashboard.html",
+            {"request": request, "employees": employees, "entries": entries},
         )
 
     async def post(self, request: Request):
@@ -54,7 +82,7 @@ class Dashboard(HTTPEndpoint):
                 {"employee": form["employee"]},
             )
 
-        entries = []
+        new_entries = []
 
         try:
             contents = await form["entries"].read()
@@ -62,30 +90,84 @@ class Dashboard(HTTPEndpoint):
             for data in csv.reader(file):
                 created_at = datetime.datetime.strptime(data[0], "%Y-%m-%d")
                 expires_at = created_at + datetime.timedelta(days=90)
-                entries.append(
-                    {
-                        "employee_id": employee.id,
-                        "created_at": created_at,
-                        "expires_at": expires_at,
-                        "value": int(data[1]),
-                    }
+                new_entries.append(
+                    Record(
+                        employee_id=employee.id,
+                        created_at=created_at,
+                        expires_at=expires_at,
+                        value=int(data[1]),
+                        balance=int(data[1]),
+                    )
                 )
-        except (RuntimeError):
-            return RedirectResponse("/400")
+        except RuntimeError:
+            raise HTTPException(400)
 
+        old_entries = await database.fetch_all(
+            """
+            SELECT id, expires_at, balance FROM entries 
+            WHERE employee_id = :employee_id 
+            AND expires_at > current_date 
+            AND balance != 0 
+            ORDER BY created_at;
+            """,
+            {"employee_id": employee.id},
+        )
+
+        changed_entries = []
+        new_entries.sort(key=lambda entry: entry.created_at)
+
+        for new_entry in new_entries:
+            for old_entry in old_entries:
+                if old_entry.balance == 0:
+                    continue
+
+                if new_entry.created_at > old_entry.expires_at:
+                    continue
+
+                if (old_entry.balance > 0) == (new_entry.balance > 0):
+                    continue
+
+                balance = old_entry.balance + new_entry.balance
+
+                if balance > 0 and old_entry.balance > 0:
+                    old_entry.balance = balance
+                    new_entry.balance = 0
+                else:
+                    old_entry.balance = 0
+                    new_entry.balance = balance
+
+                # Flag for update if it was an existing entry.
+                if "id" in old_entry:
+                    changed_entries.append(
+                        Record(
+                            id=old_entry.id,
+                            balance=old_entry.balance,
+                        )
+                    )
+
+            # New entry must be considered in the next iteration.
+            old_entries.append(new_entry)
+
+        # Update and insert must either fail or succeed together.
         async with database.transaction():
             await database.execute_many(
                 """
-                INSERT INTO entries (employee_id, created_at, expires_at, initial_value, spare_value)
-                VALUES (:employee_id, :created_at, :expires_at, :value, :value);
+                UPDATE entries SET balance = :balance WHERE id = :id;
                 """,
-                values=entries,
+                values=changed_entries,
+            )
+            await database.execute_many(
+                """
+                INSERT INTO entries (employee_id, created_at, expires_at, value, balance)
+                VALUES (:employee_id, :created_at, :expires_at, :value, :balance);
+                """,
+                values=new_entries,
             )
 
         request.flash(
             "%d registro(s) importado(s) para o funcionário %s"
             % (
-                len(entries),
+                len(new_entries),
                 employee.name,
             ),
             "positive",
@@ -94,10 +176,42 @@ class Dashboard(HTTPEndpoint):
         return RedirectResponse("/", status_code=303)
 
 
-# BadRequest endpoint.
-class BadRequest(HTTPEndpoint):
+# Employees endpoint.
+class Employees(HTTPEndpoint):
     async def get(self, request: Request):
-        return templates.TemplateResponse("400.html", {"request": request})
+        employees = await database.fetch_all("SELECT id, name FROM employees;")
+        entries = []
+        employee_id = request.path_params.get("id")
+
+        if employee_id:
+            entries = await database.fetch_all(
+                """
+                SELECT id, created_at, expires_at, value, balance
+                FROM entries
+                WHERE employee_id = :employee
+                ORDER BY created_at;
+                """,
+                {"employee": employee_id},
+            )
+
+        return templates.TemplateResponse(
+            "employee.html",
+            {
+                "request": request,
+                "employee_id": employee_id,
+                "employees": employees,
+                "entries": entries,
+            },
+        )
+
+
+# Exception handler.
+async def handle_exception(request: Request, exception: HTTPException | Exception):
+    return templates.TemplateResponse(
+        "error.html",
+        {"request": request, "status_code": exception.status_code},
+        status_code=exception.status_code,
+    )
 
 
 # Create Starlette application.
@@ -115,10 +229,16 @@ app = Starlette(
         Middleware(FlashMiddleware),
     ],
     routes=[
-        Route("/", Dashboard),
-        Route("/400", BadRequest),
+        Route("/", Dashboard, name="dashboard"),
+        Route("/employees", Employees, name="employees"),
+        Route("/employees/{id:int}", Employees, name="employee"),
         Mount("/static", StaticFiles(directory="static"), name="static"),
     ],
+    exception_handlers={
+        404: handle_exception,
+        HTTPException: handle_exception,
+        Exception: handle_exception,
+    },
 )
 
 # Run with uvicorn.
