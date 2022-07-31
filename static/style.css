@@ -287,10 +287,11 @@ button {
 
 .topbar {
   align-items: center;
+  align-content: center;
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 3rem;
-  height: 6rem;
+  height: 9rem;
   justify-content: space-between;
 }
 
@@ -383,7 +384,7 @@ button {
 }
 
 .table thead th {
-  border-bottom: 2px solid gainsboro;
+  border-bottom: 1px solid gainsboro;
   font-weight: bolder;
 }
 
