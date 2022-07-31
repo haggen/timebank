@@ -4,9 +4,10 @@ create table if not exists employees (
 );
 create table if not exists entries (
     id serial primary key,
-    employee_id integer not null,
     created_at timestamptz not null default now(),
-    expires_at timestamptz not null,
+    employee_id integer not null,
+    happened_on date not null,
+    expires_on date not null,
     value integer not null,
     balance integer not null
 );

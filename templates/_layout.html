@@ -13,12 +13,12 @@
 
 <body>
   {% with f = request.flash() %}
-  {% if f.message %}
-  <div role="alert {{ f.type }}" class="alert positive">
-    <p>{{ f.message }}.</p>
-    <button type="button" aria-label="Fechar alerta" onclick="this.parentElement.remove()">×</button>
-  </div>
-  {% endif %}
+    {% if f.message %}
+      <div role="alert {{ f.type }}" class="alert positive">
+        <p>{{ f.message }}.</p>
+        <button type="button" aria-label="Fechar" onclick="this.parentElement.remove()">×</button>
+      </div>
+    {% endif %}
   {% endwith %}
 
   <div class="layout">
@@ -30,17 +30,17 @@
       </h1>
 
       <ul>
-        <li {% if request.url.path is eq '/' %} class="active" {% endif %}>
-          <a href="{{ request.url_for('dashboard') }}">
+        <li{% if request.url is eq request.url_for('upload') %} class="active"{% endif %}>
+          <a href="{{ request.url_for('upload') }}">
             Enviar planilha
           </a>
         </li>
-        <li {% if request.url.path is eq '/' %} class="active" {% endif %}>
+        <li{% if request.url is eq request.url_for('dashboard') %} class="active"{% endif %}>
           <a href="{{ request.url_for('dashboard') }}">
             Resumo
           </a>
         </li>
-        <li {% if (request.url | string).startswith(request.url_for('employees')) %} class="active" {% endif %}>
+        <li{% if request.url_for('employees') in request.url | string %} class="active"{% endif %}>
           <a href="{{ request.url_for('employees') }}">
             Histórico
           </a>

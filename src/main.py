@@ -58,7 +58,7 @@ class Dashboard(HTTPEndpoint):
             SELECT employees.name AS employee, SUM(entries.balance) AS balance 
             FROM entries 
             JOIN employees ON entries.employee_id = employees.id 
-            WHERE entries.expires_at > current_date
+            WHERE entries.expires_on > current_date
             GROUP BY employees.name;
             """
         )
@@ -88,13 +88,13 @@ class Dashboard(HTTPEndpoint):
             contents = await form["entries"].read()
             file = io.StringIO(contents.decode("utf-8"), newline="")
             for data in csv.reader(file):
-                created_at = datetime.datetime.strptime(data[0], "%Y-%m-%d")
-                expires_at = created_at + datetime.timedelta(days=90)
+                happened_on = datetime.date.fromisoformat(data[0])
+                expires_on = happened_on + datetime.timedelta(days=90)
                 new_entries.append(
                     Record(
                         employee_id=employee.id,
-                        created_at=created_at,
-                        expires_at=expires_at,
+                        happened_on=happened_on,
+                        expires_on=expires_on,
                         value=int(data[1]),
                         balance=int(data[1]),
                     )
@@ -102,26 +102,29 @@ class Dashboard(HTTPEndpoint):
         except RuntimeError:
             raise HTTPException(400)
 
+        # This must be sorted before the query below.
+        new_entries.sort(key=lambda entry: entry.happened_on)
+
         old_entries = await database.fetch_all(
             """
-            SELECT id, expires_at, balance FROM entries 
+            SELECT id, happened_on, expires_on, balance FROM entries 
             WHERE employee_id = :employee_id 
-            AND expires_at > current_date 
+            AND expires_on > :reference_date
             AND balance != 0 
-            ORDER BY created_at;
+            ORDER BY happened_on;
             """,
-            {"employee_id": employee.id},
+            {"employee_id": employee.id, "reference_date": new_entries[0].happened_on},
         )
 
+        # Saved entries to be updated.
         changed_entries = []
-        new_entries.sort(key=lambda entry: entry.created_at)
 
         for new_entry in new_entries:
             for old_entry in old_entries:
                 if old_entry.balance == 0:
                     continue
 
-                if new_entry.created_at > old_entry.expires_at:
+                if new_entry.happened_on > old_entry.expires_on:
                     continue
 
                 if (old_entry.balance > 0) == (new_entry.balance > 0):
@@ -148,6 +151,9 @@ class Dashboard(HTTPEndpoint):
             # New entry must be considered in the next iteration.
             old_entries.append(new_entry)
 
+            # Re-sort old entries in last entry was out of order.
+            old_entries.sort(key=lambda entry: entry.happened_on)
+
         # Update and insert must either fail or succeed together.
         async with database.transaction():
             await database.execute_many(
@@ -158,8 +164,8 @@ class Dashboard(HTTPEndpoint):
             )
             await database.execute_many(
                 """
-                INSERT INTO entries (employee_id, created_at, expires_at, value, balance)
-                VALUES (:employee_id, :created_at, :expires_at, :value, :balance);
+                INSERT INTO entries (employee_id, happened_on, expires_on, value, balance)
+                VALUES (:employee_id, :happened_on, :expires_on, :value, :balance);
                 """,
                 values=new_entries,
             )
@@ -176,6 +182,19 @@ class Dashboard(HTTPEndpoint):
         return RedirectResponse("/", status_code=303)
 
 
+# Upload endpoint.
+class Upload(HTTPEndpoint):
+    async def get(self, request: Request):
+        employees = await database.fetch_all("SELECT id, name FROM employees;")
+        return templates.TemplateResponse(
+            "upload.html",
+            {
+                "request": request,
+                "employees": employees,
+            },
+        )
+
+
 # Employees endpoint.
 class Employees(HTTPEndpoint):
     async def get(self, request: Request):
@@ -186,10 +205,10 @@ class Employees(HTTPEndpoint):
         if employee_id:
             entries = await database.fetch_all(
                 """
-                SELECT id, created_at, expires_at, value, balance
+                SELECT id, happened_on, expires_on, value, balance
                 FROM entries
                 WHERE employee_id = :employee
-                ORDER BY created_at;
+                ORDER BY happened_on;
                 """,
                 {"employee": employee_id},
             )
@@ -230,6 +249,7 @@ app = Starlette(
     ],
     routes=[
         Route("/", Dashboard, name="dashboard"),
+        Route("/upload", Upload, name="upload"),
         Route("/employees", Employees, name="employees"),
         Route("/employees/{id:int}", Employees, name="employee"),
         Mount("/static", StaticFiles(directory="static"), name="static"),

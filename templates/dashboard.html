@@ -1,36 +1,22 @@
-{% extends "_layout.html"%} {% block content %}
-<main class="content">
-  <form method="post" action="/" enctype="multipart/form-data">
-    <input type="text" name="employee" list="employees" placeholder="Nome do funcionário" class="field" required />
-    <label class="field" style="padding-right: 1.5rem" tabindex="0"
-      oninput="this.querySelector('span').textContent=event.target.value"
-      onkeypress="this.control.dispatchEvent(new KeyboardEvent(event.type, { ...event }))">
-      <input type="file" name="entries" accept="text/csv" required hidden />
-      <span>Planilha com registros</span>
-    </label>
-    <button type="submit" class="button">Enviar</button>
-    <datalist id="employees">
-      {% for employee in employees %}
-      <option value="{{ employee.name }}" />
-      {% endfor %}
-    </datalist>
-  </form>
+{% extends "_layout.html"%}
 
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Funcionário</th>
-        <th>Horas</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for entry in entries %}
-      <tr>
-        <th>{{ entry.employee }}</th>
-        <td>{{ entry.balance }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</main>
+{% block content %}
+  <main class="content">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Funcionário</th>
+          <th>Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+          <tr>
+            <th>{{ entry.employee }}</th>
+            <td>{{ entry.balance }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </main>
 {% endblock %}

@@ -1,48 +1,56 @@
-{% extends "_layout.html"%} {% block content %}
-<main class="content">
-  <div class="columns">
-    <nav>
-      {% macro link(text="", href="") %}
-      <a href="{{ href }}" {% if href.startswith(request.url.__str__()) %} class="active" {% endif %}>{{ href }}</a>
-      {% endmacro %}
+{% extends "_layout.html"%} 
 
-      <ul class="menu">
-        {% for employee in employees %}
-        <li {% if employee_id is eq employee.id %} class="active" {% endif %}>
-          <a href="{{ request.url_for('employee', id=employee.id) }}">{{ employee.name }}</a>
-        </li>
-        {% endfor %}
-      </ul>
-    </nav>
+{% block content %}
+  <main class="content">
+    <div class="columns">
+      <nav>
+        {% macro link(text="", href="") %}
+          <a href="{{ href }}" {% if href.startswith(request.url.__str__()) %} class="active" {% endif %} >{{ href }}</a >
+        {% endmacro %}
 
-    <div style="grid-column: span 4;">
-      {% if employee_id %}
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Expiração</th>
-            <th>Valor</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for entry in entries %}
-          <tr>
-            <td>{{ entry.created_at.strftime("%d/%m/%Y") }}</td>
-            <td>{{ entry.expires_at.strftime("%d/%m/%Y") }}</td>
-            <td>{{ entry.value }}</td>
-            <td>{{ entry.balance }}</td>
-          </tr>
+        <ul class="menu">
+          {% for employee in employees %}
+            <li{% if employee_id is eq employee.id %} class="active"{% endif %}>
+              <a href="{{ request.url_for('employee', id=employee.id) }}">{{ employee.name }}</a>
+            </li>
           {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div class="hero">
-        <p>Selecione um funcionário no menu ao lado.</p>
+        </ul>
+      </nav>
+
+      <div style="grid-column: span 4">
+        {% if employee_id %}
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Expiração</th>
+                <th>Evento</th>
+                <th>Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in entries %}
+                <tr>
+                  <td>{{ entry.happened_on.strftime("%d/%m/%Y") }}</td>
+                  <td>{{ entry.expires_on.strftime("%d/%m/%Y") }}</td>
+                  <td>
+                    {% if entry.value > 0 %}
+                      Trabalhou {{ entry.value }}
+                    {% else %}
+                      Descansou {{ -entry.value }}
+                    {% endif %}
+                  </td>
+                  <td>{{ entry.balance }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="hero">
+            <p>Selecione um funcionário no menu ao lado.</p>
+          </div>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
-  </div>
-</main>
+  </main>
 {% endblock %}

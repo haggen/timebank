@@ -1,0 +1,18 @@
+{% extends "_layout.html"%}\
+
+{% block content %}
+  <main class="content">
+    <form method="post" action="/" enctype="multipart/form-data">
+      <datalist id="employees">
+        {% for employee in employees %}
+          <option value="{{ employee.name }}" />
+        {% endfor %}
+      </datalist>
+
+      <input type="text" name="employee" list="employees" placeholder="Nome do funcionário" class="field" required />
+      <input type="file" name="entries" accept="text/csv" class="field" required />
+
+      <button type="submit" class="button">Enviar</button>
+    </form>
+  </main>
+{% endblock %}
