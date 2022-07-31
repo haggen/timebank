@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import csv, datetime, io
+from calendar import calendar
+import csv, datetime, io, logging
 from http.client import HTTPException
 
 from databases import Database, DatabaseURL
@@ -21,13 +22,18 @@ from middlewares import FlashMiddleware
 # Configuration.
 config = Config(".env")
 
-PORT = config("PORT", cast=int, default=5000)
 DEBUG = config("DEBUG", cast=bool, default=False)
+PORT = config("PORT", cast=int, default=5000)
 SESSION_KEY = config("SESSION_KEY")
 DATABASE_URL = config("DATABASE_URL", cast=DatabaseURL)
 
 # Setup Jinja templates.
 templates = Jinja2Templates(directory="templates", auto_reload=DEBUG)
+
+# Log all the queries.
+if DEBUG:
+    logging.basicConfig()
+    logging.getLogger("databases").setLevel(logging.DEBUG)
 
 # Connect to the database.
 database = Database(DATABASE_URL)
@@ -48,24 +54,41 @@ class Record(dict):
         self[key] = value
 
 
-# Dashboard endpoint.
-class Dashboard(HTTPEndpoint):
+# Summary endpoint.
+class Summary(HTTPEndpoint):
     async def get(self, request: Request):
+        try:
+            selected_date = datetime.date.fromisoformat(
+                request.query_params["month"] + "-01"
+            )
+        except (KeyError, ValueError):
+            selected_date = datetime.date.today().replace(day=1)
+
+        selected_interval = [
+            (selected_date + datetime.timedelta(days=31)).replace(day=1),
+            (selected_date + datetime.timedelta(days=62)).replace(day=1),
+        ]
+
         employees = await database.fetch_all("SELECT name FROM employees;")
 
         entries = await database.fetch_all(
             """
             SELECT employees.name AS employee, SUM(entries.balance) AS balance 
             FROM entries 
-            JOIN employees ON entries.employee_id = employees.id 
-            WHERE entries.expires_on > current_date
+            RIGHT JOIN employees ON employees.id = entries.employee_id AND entries.expires_on BETWEEN :start AND :end
             GROUP BY employees.name;
-            """
+            """,
+            {"start": selected_interval[0], "end": selected_interval[1]},
         )
 
         return templates.TemplateResponse(
-            "dashboard.html",
-            {"request": request, "employees": employees, "entries": entries},
+            "summary.html",
+            {
+                "request": request,
+                "employees": employees,
+                "entries": entries,
+                "selected_date": selected_date,
+            },
         )
 
     async def post(self, request: Request):
@@ -130,8 +153,10 @@ class Dashboard(HTTPEndpoint):
                 if (old_entry.balance > 0) == (new_entry.balance > 0):
                     continue
 
+                # Calculate new balance.
                 balance = old_entry.balance + new_entry.balance
 
+                # If new balance has the same sign as old entry balance it must still have balance left.
                 if balance > 0 and old_entry.balance > 0:
                     old_entry.balance = balance
                     new_entry.balance = 0
@@ -171,7 +196,7 @@ class Dashboard(HTTPEndpoint):
             )
 
         request.flash(
-            "%d registro(s) importado(s) para o funcionário %s"
+            "%d registro(s) importado(s) para o(a) funcionário(a) %s"
             % (
                 len(new_entries),
                 employee.name,
@@ -248,7 +273,7 @@ app = Starlette(
         Middleware(FlashMiddleware),
     ],
     routes=[
-        Route("/", Dashboard, name="dashboard"),
+        Route("/", Summary, name="summary"),
         Route("/upload", Upload, name="upload"),
         Route("/employees", Employees, name="employees"),
         Route("/employees/{id:int}", Employees, name="employee"),

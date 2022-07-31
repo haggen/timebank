@@ -30,13 +30,13 @@
       </h1>
 
       <ul>
-        <li{% if request.url is eq request.url_for('upload') %} class="active"{% endif %}>
+        <li{% if request.url == request.url_for('upload') %} class="active"{% endif %}>
           <a href="{{ request.url_for('upload') }}">
             Enviar planilha
           </a>
         </li>
-        <li{% if request.url is eq request.url_for('dashboard') %} class="active"{% endif %}>
-          <a href="{{ request.url_for('dashboard') }}">
+        <li{% if request.url.path == '/' %} class="active"{% endif %}>
+          <a href="{{ request.url_for('summary') }}">
             Resumo
           </a>
         </li>

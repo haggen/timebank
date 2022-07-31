@@ -2,55 +2,66 @@
 
 {% block content %}
   <main class="content">
-    <div class="columns">
-      <nav>
-        {% macro link(text="", href="") %}
-          <a href="{{ href }}" {% if href.startswith(request.url.__str__()) %} class="active" {% endif %} >{{ href }}</a >
-        {% endmacro %}
+    {% if not employees | length %}
+      <div class="hero">
+        <h1>🌵</h1>
+        <p>Nenhum funcionário encontrado.</p>
+      </div>
+    {% else %}
+      <div class="columns">
+        <nav>
+          {% macro link(text="", href="") %}
+            <a href="{{ href }}"{% if href.startswith(request.url.__str__()) %} class="active"{% endif %}>{{ href }}</a >
+          {% endmacro %}
 
-        <ul class="menu">
-          {% for employee in employees %}
-            <li{% if employee_id is eq employee.id %} class="active"{% endif %}>
-              <a href="{{ request.url_for('employee', id=employee.id) }}">{{ employee.name }}</a>
-            </li>
-          {% endfor %}
-        </ul>
-      </nav>
+          <ul class="menu">
+            {% for employee in employees %}
+              <li{% if employee_id is eq employee.id %} class="active"{% endif %}>
+                <a href="{{ request.url_for('employee', id=employee.id) }}">{{ employee.name }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </nav>
 
-      <div style="grid-column: span 4">
-        {% if employee_id %}
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Expiração</th>
-                <th>Evento</th>
-                <th>Saldo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for entry in entries %}
-                <tr>
-                  <td>{{ entry.happened_on.strftime("%d/%m/%Y") }}</td>
-                  <td>{{ entry.expires_on.strftime("%d/%m/%Y") }}</td>
-                  <td>
-                    {% if entry.value > 0 %}
-                      Trabalhou {{ entry.value }}
-                    {% else %}
-                      Descansou {{ -entry.value }}
-                    {% endif %}
-                  </td>
-                  <td>{{ entry.balance }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
+        <div style="grid-column: span 4">
+          {% if not employee_id %}
           <div class="hero">
+            <h1>👈</h1>
             <p>Selecione um funcionário no menu ao lado.</p>
           </div>
-        {% endif %}
+          {% elif not entries | length %}
+            <div class="hero">
+              <h1>🌵</h1>
+              <p>Nenhum registro encontrado.</p>
+            </div>
+          {% else %}
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Expiração</th>
+                  <th>Evento</th>
+                  <th>Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entry in entries %}
+                  <tr>
+                    <td>{{ entry.happened_on.strftime("%d/%m/%Y") }}</td>
+                    <td>{{ entry.expires_on.strftime("%d/%m/%Y") }}</td>
+                    <td{% if entry.value > 0 %} class="text positive"{% elif entry.value < 0 %} class="text negative"{% endif %}>
+                      {% if entry.value > 0 %}+{% endif %}{{ entry.value }}
+                    </td> 
+                    <td{% if entry.balance > 0 %} class="text positive"{% elif entry.balance < 0 %} class="text negative"{% endif %}>
+                      {% if entry.balance > 0 %}+{% endif %}{{ entry.balance }}
+                    </td> 
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% endif %}
+        </div>
       </div>
-    </div>
+    {% endif %}
   </main>
 {% endblock %}

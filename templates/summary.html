@@ -1,0 +1,41 @@
+{% extends "_layout.html"%}
+
+{% block content %}
+  <main class="content">
+    {% if not employees | length %}
+      <div class="hero">
+        <h1>🌵</h1>
+        <p>Nenhum funcionário encontrado.</p>
+      </div>
+    {% else %}
+      <div class="stack">
+        <form method="get">
+          <input type="month" name="month" value="{{ selected_date.strftime("%Y-%m") }}" class="input" />
+          <button type="submit" class="button">Atualizar</button>
+        </form>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Funcionário</th>
+              <th>Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in entries %}
+              <tr>
+                <th>{{ entry.employee }}</th>
+                {% if entry.balance %}
+                <td{% if entry.balance > 0 %} class="text positive"{% elif entry.balance < 0 %} class="text negative"{% endif %}>
+                  {{ entry.balance }}
+                </td>
+                {% else %}
+                  <td>0</td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </main>
+{% endblock %}

@@ -9,10 +9,19 @@
         {% endfor %}
       </datalist>
 
-      <input type="text" name="employee" list="employees" placeholder="Nome do funcionário" class="field" required />
-      <input type="file" name="entries" accept="text/csv" class="field" required />
-
-      <button type="submit" class="button">Enviar</button>
+      <label class="form-row">
+        <span class="label">Funcionário</span>
+        <input type="text" name="employee" list="employees" placeholder="Maria José" class="input" required />
+      </label>
+      
+      <label class="form-row">
+        <span class="label">Arquivo</span>
+        <input type="file" name="entries" accept="text/csv" class="input" required />
+      </label>
+      
+      <footer class="form-foot">
+        <button type="submit" class="button">Enviar</button>
+      </footer>
     </form>
   </main>
 {% endblock %}

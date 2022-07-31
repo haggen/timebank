@@ -4,8 +4,10 @@
   <main class="content">
     <article class="hero">
       {% if status_code is eq 404 %}
-        <h1>Página não encontrada.</h1>
-      {% else %}
+        <h1>🕵️</h1>
+        <p>Página não encontrada.</p>
+        {% else %}
+        <h1>😬</h1>
         <h1>Ops, deu ruim.</h1>
       {% endif %}
     </article>

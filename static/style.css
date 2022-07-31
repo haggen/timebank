@@ -40,12 +40,11 @@ input[type="number"] {
 }
 
 ::-webkit-file-upload-button {
-  all: unset;
   display: none;
 }
 
 input[type="file"] {
-  line-height: 2;
+  line-height: 200%;
 }
 
 ::-webkit-search-cancel-button,
@@ -79,7 +78,7 @@ input[type="file"] {
 }
 
 ::-webkit-calendar-picker-indicator {
-  all: unset;
+  /* all: unset; */
 }
 
 [list]::-webkit-calendar-picker-indicator {
@@ -298,7 +297,7 @@ button {
 .topbar h1 {
   font-size: 1.5rem;
   font-weight: 900;
-  line-height: 1.25;
+  line-height: 1.125;
 }
 
 .topbar ul {
@@ -328,6 +327,20 @@ button {
 
 /* --- */
 
+.stack {
+  display: grid;
+  gap: 1.5rem;
+  justify-items: start;
+}
+
+/* --- */
+
+.label {
+  display: block;
+}
+
+/* --- */
+
 .content {
   display: grid;
   gap: 1.5rem;
@@ -353,9 +366,15 @@ button {
 /* --- */
 
 .hero {
-  font-size: 1.5em;
-  text-align: center;
+  color: gray;
+  font-size: 1.5rem;
   padding: 3rem;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  font-weight: 900;
 }
 
 /* --- */
@@ -394,7 +413,7 @@ button {
 
 /* --- */
 
-.field,
+.input,
 .button {
   align-items: center;
   border-radius: 0.25rem;
@@ -403,7 +422,7 @@ button {
   padding: 0 0.5rem;
 }
 
-.field {
+.input {
   background-color: white;
   border: 1px solid dimgray;
 }
@@ -412,4 +431,14 @@ button {
   background-color: royalblue;
   color: white;
   padding: 0 0.75rem;
+}
+
+/* --- */
+
+.text.positive {
+  color: darkgreen;
+}
+
+.text.negative {
+  color: darkred;
 }
