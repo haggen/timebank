@@ -1,0 +1,230 @@
+@namespace svg "http://www.w3.org/2000/svg";
+
+:not(svg|*) {
+  all: unset;
+  display: revert;
+}
+
+*,
+:before,
+:after {
+  box-sizing: border-box;
+}
+
+:before,
+:after {
+  font: inherit;
+  text-decoration: inherit;
+  vertical-align: inherit;
+}
+
+input[type="number"] {
+  appearance: textfield;
+}
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  all: unset;
+}
+
+::-webkit-color-swatch-wrapper {
+  all: unset;
+}
+
+::-webkit-color-swatch {
+  all: unset;
+}
+
+::-moz-color-swatch {
+  all: unset;
+}
+
+::-webkit-file-upload-button {
+  display: none;
+}
+
+input[type="file"] {
+  line-height: 200%;
+}
+
+::-webkit-search-cancel-button,
+::-webkit-search-results-button,
+::-webkit-search-results-decoration {
+  all: unset;
+}
+
+::-webkit-slider-thumb {
+  all: unset;
+}
+
+::-webkit-slider-runnable-track {
+  all: unset;
+}
+
+::-moz-range-thumb {
+  all: unset;
+}
+
+::-moz-range-track {
+  all: unset;
+}
+
+::-moz-range-progress {
+  all: unset;
+}
+
+::-webkit-datetime-edit-fields-wrapper {
+  all: unset;
+}
+
+::-webkit-calendar-picker-indicator {
+  /* all: unset; */
+}
+
+[list]::-webkit-calendar-picker-indicator {
+  list-style: none !important;
+}
+
+::-webkit-progress-bar {
+  all: unset;
+}
+
+::-webkit-progress-value {
+  all: unset;
+}
+
+::-moz-progress-bar {
+  all: unset;
+}
+
+pre,
+textarea {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+input,
+select,
+textarea {
+  vertical-align: bottom;
+}
+
+textarea {
+  resize: auto;
+}
+
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  cursor: default;
+  overflow-wrap: break-word;
+  tab-size: 4;
+  text-size-adjust: 100%;
+  font: 16px/1.5 system-ui, sans-serif;
+}
+
+pre {
+  overflow: auto;
+}
+
+abbr[title] {
+  cursor: help;
+  text-decoration: underline dotted;
+}
+
+small {
+  font-size: 0.75em;
+}
+
+b,
+strong {
+  font-weight: 700;
+}
+
+em,
+i {
+  font-style: italic;
+}
+
+a,
+button {
+  cursor: pointer;
+}
+
+svg:not([fill]) {
+  fill: currentColor;
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: monospace;
+}
+
+sub,
+sup {
+  vertical-align: baseline;
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+li {
+  list-style: none;
+}
+
+iframe,
+img,
+input,
+select,
+textarea {
+  height: auto;
+  max-width: 100%;
+}
+
+table {
+  table-layout: fixed;
+  text-indent: 0;
+}
+
+::-moz-focus-inner {
+  border-style: none;
+  padding: 0;
+}
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+:-moz-focusring {
+  outline: 1px dotted;
+}
+
+:focus {
+  outline: 1px dotted;
+}
+
+[aria-busy="true"] {
+  cursor: progress;
+}
+
+[aria-disabled="true"],
+[disabled] {
+  cursor: not-allowed;
+}
+
+[hidden] {
+  display: none;
+}

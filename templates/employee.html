@@ -10,14 +10,10 @@
     {% else %}
       <div class="columns">
         <nav>
-          {% macro link(text="", href="") %}
-            <a href="{{ href }}"{% if href.startswith(request.url.__str__()) %} class="active"{% endif %}>{{ href }}</a >
-          {% endmacro %}
-
           <ul class="menu">
             {% for employee in employees %}
-              <li{% if employee_id is eq employee.id %} class="active"{% endif %}>
-                <a href="{{ request.url_for('employee', id=employee.id) }}">{{ employee.name }}</a>
+              <li>
+                <a href="{{ request.url_for('employee', id=employee.id) }}" class="menu-item{{ " active" if employee_id is eq employee.id }}">{{ employee.name }}</a>
               </li>
             {% endfor %}
           </ul>
@@ -40,7 +36,7 @@
                 <tr>
                   <th>Data</th>
                   <th>Expiração</th>
-                  <th>Evento</th>
+                  <th>Entrada</th>
                   <th>Saldo</th>
                 </tr>
               </thead>
@@ -48,13 +44,15 @@
                 {% for entry in entries %}
                   <tr>
                     <td>{{ entry.happened_on.strftime("%d/%m/%Y") }}</td>
-                    <td>{{ entry.expires_on.strftime("%d/%m/%Y") }}</td>
-                    <td{% if entry.value > 0 %} class="text positive"{% elif entry.value < 0 %} class="text negative"{% endif %}>
-                      {% if entry.value > 0 %}+{% endif %}{{ entry.value }}
+                    <td class="text {{ "strikethrough grayed" if entry.is_expired }}">
+                      {{ entry.expires_on.strftime("%d/%m/%Y") }}
+                    </td>  
+                    <td>
+                      {{ "+" if entry.value > 0 }}{{ entry.value }}
                     </td> 
-                    <td{% if entry.balance > 0 %} class="text positive"{% elif entry.balance < 0 %} class="text negative"{% endif %}>
-                      {% if entry.balance > 0 %}+{% endif %}{{ entry.balance }}
-                    </td> 
+                    <td class="text {{ "negative" if entry.balance > 0}}">
+                      {{ "+" if entry.balance > 0 }}{{ entry.balance }}
+                    </td>
                   </tr>
                 {% endfor %}
               </tbody>

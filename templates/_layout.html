@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Controle de Horas</title>
-  <link rel="stylesheet" href="/static/style.css" />
+   
+  <title>Banco de Horas</title>
+  
+  <link href="/static/reset.css" rel="stylesheet" />
+  <link href="/static/style.css" rel="stylesheet" />
+  <link href="https://fonts.bunny.net" rel="preconnect" />
+  <link href="https://fonts.bunny.net/css?family=arimo:400,700" rel="stylesheet" />
 
   {% block head %}{% endblock %}
 </head>
 
 <body>
-  {% with f = request.flash() %}
-    {% if f.message %}
-      <div role="alert {{ f.type }}" class="alert positive">
-        <p>{{ f.message }}.</p>
+  {% with flash = request.flash() %}
+    {% if flash.message %}
+      <div role="alert {{ flash.type }}" class="alert positive">
+        <p>{{ flash.message }}.</p>
         <button type="button" aria-label="Fechar" onclick="this.parentElement.remove()">×</button>
       </div>
     {% endif %}
@@ -25,23 +29,23 @@
     <nav class="topbar" aria-label="Navegação principal">
       <h1>
         <a href="/">
-          Controle de Horas
+          Banco de Horas
         </a>
       </h1>
 
       <ul>
-        <li{% if request.url == request.url_for('upload') %} class="active"{% endif %}>
-          <a href="{{ request.url_for('upload') }}">
+        <li>
+          <a href="{{ request.url_for('upload') }}" class="menu-item{{ " active" if request.url == request.url_for('upload') }}">
             Enviar planilha
           </a>
         </li>
-        <li{% if request.url.path == '/' %} class="active"{% endif %}>
-          <a href="{{ request.url_for('summary') }}">
+        <li>
+          <a href="{{ request.url_for('summary') }}" class="menu-item{{ " active" if request.url.path == '/' }}">
             Resumo
           </a>
         </li>
-        <li{% if request.url_for('employees') in request.url | string %} class="active"{% endif %}>
-          <a href="{{ request.url_for('employees') }}">
+        <li>
+          <a href="{{ request.url_for('employees') }}" class="menu-item{{ " active" if request.url_for('employees') in request.url | string }}">
             Histórico
           </a>
         </li>

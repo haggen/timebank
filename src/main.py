@@ -65,20 +65,20 @@ class Summary(HTTPEndpoint):
             selected_date = datetime.date.today().replace(day=1)
 
         selected_interval = [
+            (selected_date).replace(day=1),
             (selected_date + datetime.timedelta(days=31)).replace(day=1),
-            (selected_date + datetime.timedelta(days=62)).replace(day=1),
         ]
 
         employees = await database.fetch_all("SELECT name FROM employees;")
 
         entries = await database.fetch_all(
             """
-            SELECT employees.name AS employee, SUM(entries.balance) AS balance 
-            FROM entries 
-            RIGHT JOIN employees ON employees.id = entries.employee_id AND entries.expires_on BETWEEN :start AND :end
-            GROUP BY employees.name;
+            SELECT employees.name, employees.id as employee_id, SUM(entries.balance) FILTER(WHERE entries.expires_on BETWEEN :a AND :b) AS expiring_balance, SUM(entries.balance) as balance
+            FROM employees
+            LEFT JOIN entries ON employees.id = entries.employee_id
+            GROUP BY employees.id, employees.name;
             """,
-            {"start": selected_interval[0], "end": selected_interval[1]},
+            {"a": selected_interval[0], "b": selected_interval[1]},
         )
 
         return templates.TemplateResponse(
@@ -230,7 +230,7 @@ class Employees(HTTPEndpoint):
         if employee_id:
             entries = await database.fetch_all(
                 """
-                SELECT id, happened_on, expires_on, value, balance
+                SELECT id, happened_on, expires_on, value, balance, expires_on < current_date as is_expired
                 FROM entries
                 WHERE employee_id = :employee
                 ORDER BY happened_on;
