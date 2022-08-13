@@ -4,7 +4,7 @@ body {
 }
 
 html {
-  font-family: Arimo, sans-serif;
+  font-family: Lato, system-ui, sans-serif;
 }
 
 /* --- */
@@ -61,37 +61,33 @@ html {
 /* --- */
 
 .topbar {
+  justify-content: center;
   align-items: center;
-  align-content: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 3rem;
+  gap: 3rem;
   height: 9rem;
-  justify-content: space-between;
-}
-
-.topbar h1 {
-  font-size: 1.5rem;
-  font-weight: 900;
-  line-height: 1.125;
-}
-
-.topbar ul {
-  align-items: center;
-  display: flex;
-  gap: 1.5rem;
-  max-width: 100%;
   overflow-x: auto;
 }
 
 /* --- */
 
+.brand svg {
+}
+
+.brand svg {
+  fill: inherit;
+  height: 1.25rem;
+}
+
+/* --- */
+
 .footer {
-  height: 6rem;
-  padding-block: 1.5rem;
-  position: sticky;
-  text-align: center;
-  top: 100%;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  gap: 3rem;
+  height: 9rem;
+  overflow-x: auto;
 }
 
 /* --- */
@@ -99,7 +95,7 @@ html {
 .stack {
   display: grid;
   gap: 1.5rem;
-  justify-items: start;
+  /* justify-items: start; */
 }
 
 /* --- */
@@ -112,9 +108,9 @@ html {
 
 /* --- */
 
-.content {
+.main {
   display: grid;
-  gap: 1.5rem;
+  gap: 3rem;
 }
 
 /* --- */
@@ -129,20 +125,33 @@ html {
 .menu {
 }
 
+.menu.inline {
+  display: flex;
+  gap: 1.5rem;
+}
+
 /* --- */
 
 .hero {
+  background: whitesmoke linear-gradient(whitesmoke, white);
+  border-radius: 1rem;
   color: dimgray;
-  font-size: 1.5rem;
+  display: grid;
+  gap: 1.5rem;
+  justify-content: center;
   padding-block: 6rem;
   text-align: center;
-  background-color: whitesmoke;
-  border-radius: 1rem;
 }
 
 .hero h1 {
   font-size: 3rem;
+  line-height: 1.25;
   font-weight: 900;
+}
+
+.hero p {
+  font-size: 1.5rem;
+  line-height: 1.25;
 }
 
 /* --- */
@@ -195,8 +204,8 @@ html {
   align-items: center;
   border-radius: 0.25rem;
   display: inline-flex;
-  height: 2.5rem;
-  padding-inline: 1rem;
+  height: 2rem;
+  padding-inline: 1.5rem;
 }
 
 :is(.input, .button).pill {
@@ -213,6 +222,7 @@ html {
   font-weight: normal;
   color: white;
   padding-inline: 1.5rem;
+  padding-bottom: 0.125rem;
 }
 
 /* --- */
@@ -229,10 +239,10 @@ html {
   color: dimgray;
 }
 
-.text.underline {
+.text.underlined {
   text-decoration: underline;
 }
 
-.text.strikethrough {
+.text.striked {
   text-decoration: line-through;
 }

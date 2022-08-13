@@ -10,9 +10,11 @@ jinja2 = "*"
 databases = {extras = ["asyncpg"], version = "*"}
 itsdangerous = "*"
 python-multipart = "*"
+requests-oauthlib = "*"
 
 [dev-packages]
 black = "*"
+debugpy = "*"
 
 [requires]
 python_version = "3.10"

@@ -12,8 +12,9 @@ services:
       - --providers.docker.defaultrule=Host(`{{ normalize .Name }}.localhost`)
       - --api.insecure=true
   web:
-    environment:
-      - DEBUG=True
-      - SESSION_KEY=a824c3699806eb21
+    ports:
+      - 5678:5678
     volumes:
       - .:/root/src
+    command: |
+      python -m debugpy --listen 0.0.0.0:5678 src/main.py

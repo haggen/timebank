@@ -10,3 +10,7 @@
 # Python files.
 .venv
 __pycache__
+
+# Docker files.
+compose*.yml
+

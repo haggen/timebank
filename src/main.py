@@ -1,290 +1,224 @@
 #!/usr/bin/env python
 
-from calendar import calendar
-import csv, datetime, io, logging
-from http.client import HTTPException
-
-from databases import Database, DatabaseURL
-
-from starlette.config import Config
+from databases import Database
+from starlette.authentication import (
+    AuthCredentials,
+    AuthenticationBackend,
+    AuthenticationError,
+    SimpleUser,
+    requires,
+)
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.applications import Starlette
-from starlette.endpoints import HTTPEndpoint
-from starlette.templating import Jinja2Templates
 from starlette.responses import RedirectResponse
 from starlette.staticfiles import StaticFiles
+from starlette.endpoints import HTTPEndpoint
+from starlette.exceptions import HTTPException
 from starlette.routing import Route, Mount
 from starlette.requests import Request
-
 from middlewares import FlashMiddleware
+from google import Google
 
-# Configuration.
-config = Config(".env")
+import logging
+import config
 
-DEBUG = config("DEBUG", cast=bool, default=False)
-PORT = config("PORT", cast=int, default=5000)
-SESSION_KEY = config("SESSION_KEY")
-DATABASE_URL = config("DATABASE_URL", cast=DatabaseURL)
+# Create database instance.
+database = Database(config.DATABASE_URL)
 
-# Setup Jinja templates.
-templates = Jinja2Templates(directory="templates", auto_reload=DEBUG)
-
-# Log all the queries.
-if DEBUG:
-    logging.basicConfig()
-    logging.getLogger("databases").setLevel(logging.DEBUG)
-
-# Connect to the database.
-database = Database(DATABASE_URL)
-
-# Useful when you're mixing database records and dicts.
-class Record(dict):
-    """
-    Extends dict to support attribute-style access.
-    """
-
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError:
-            raise AttributeError(key)
-
-    def __setattr__(self, key, value):
-        self[key] = value
+# Logger instance.
+log = logging.getLogger("starlette")
 
 
-# Summary endpoint.
-class Summary(HTTPEndpoint):
-    async def get(self, request: Request):
-        try:
-            selected_date = datetime.date.fromisoformat(
-                request.query_params["month"] + "-01"
-            )
-        except (KeyError, ValueError):
-            selected_date = datetime.date.today().replace(day=1)
+class BasicAuthBackend(AuthenticationBackend):
+    async def authenticate(self, conn):
+        if not "email" in conn.session:
+            return
 
-        selected_interval = [
-            (selected_date).replace(day=1),
-            (selected_date + datetime.timedelta(days=31)).replace(day=1),
-        ]
-
-        employees = await database.fetch_all("SELECT name FROM employees;")
-
-        entries = await database.fetch_all(
-            """
-            SELECT employees.name, employees.id as employee_id, SUM(entries.balance) FILTER(WHERE entries.expires_on BETWEEN :a AND :b) AS expiring_balance, SUM(entries.balance) as balance
-            FROM employees
-            LEFT JOIN entries ON employees.id = entries.employee_id
-            GROUP BY employees.id, employees.name;
-            """,
-            {"a": selected_interval[0], "b": selected_interval[1]},
+        account = await database.fetch_one(
+            query="""
+                SELECT id, role, name, email, picture_url, domain, settings
+                FROM accounts JOIN organizations ON accounts.organization_id = organizations.id 
+                WHERE email = :email LIMIT 1
+                """,
+            values={"email": conn.session["email"]},
         )
 
-        return templates.TemplateResponse(
-            "summary.html",
-            {
-                "request": request,
-                "employees": employees,
-                "entries": entries,
-                "selected_date": selected_date,
-            },
+        if not account:
+            raise AuthenticationError()
+
+        account.is_authenticated = True
+        account.display_name = account.name
+
+        return AuthCredentials(["authenticated", account.role]), account
+
+
+class RootEndpoint(HTTPEndpoint):
+    async def get(self, request: Request):
+        if request.user.is_authenticated:
+            return RedirectResponse(url=request.url_for(name="new_entry"))
+
+        return RedirectResponse(url=request.url_for(name="sign_in"))
+
+
+class SessionEndpoint(HTTPEndpoint):
+    async def get(self, request: Request):
+        if not "code" in request.query_params:
+            request.session["next"] = request.query_params.get("next", None)
+            return config.templates.TemplateResponse(
+                "sign-in.html",
+                {
+                    "request": request,
+                },
+            )
+
+        try:
+            google = Google(
+                request=request, redirect_uri=request.url_for(name="sign_in")
+            )
+            token = google.fetech_token(
+                returning_uri=str(request.url.replace(scheme="https")),
+                state=request.session.pop("state", None),
+            )
+            userinfo = google.fetch_userinfo()
+        except Exception as exception:
+            log.exception(msg="", exc_info=exception)
+            raise HTTPException(status_code=401)
+
+        # Save token in session.
+        request.session["token"] = token
+
+        async with database.transaction():
+            organization = await database.fetch_one(
+                query="SELECT id FROM organizations WHERE domain = :hd",
+                values=userinfo,
+            )
+            if not organization:
+                organization = await database.fetch_one(
+                    query="""
+                        INSERT INTO organizations (domain)
+                        VALUES (:hd) RETURNING id
+                        """,
+                    values=userinfo,
+                )
+
+            account = await database.fetch_one(
+                query="SELECT email FROM accounts WHERE email = :email", values=userinfo
+            )
+            if not account:
+                account = await database.fetch_one(
+                    query="""
+                        INSERT INTO accounts (organization_id, email, name, picture_url)
+                        VALUES (:organization_id, :email, :name, :picture_url)
+                        RETURNING email
+                        """,
+                    values={
+                        "organization_id": organization["id"],
+                        "email": userinfo["email"],
+                        "name": userinfo["name"],
+                        "picture_url": userinfo["picture"],
+                    },
+                )
+
+        request.session["email"] = account.email
+
+        return RedirectResponse(
+            url=request.session.pop("next", request.url_for(name="root"))
         )
 
     async def post(self, request: Request):
+        google = Google(request=request, redirect_uri=request.url_for(name="sign_in"))
+        authorization_url, state = google.authorization_url()
+        request.session["state"] = state
+        return RedirectResponse(url=authorization_url)
+
+    @requires("authenticated")
+    async def delete(self, request: Request):
+        request.session.clear()
+        request.flash(message="🗝️ Sessão encerrada.", type="positive")
+        return RedirectResponse(url=request.url_for(name="sign_in"))
+
+
+class EntriesEndpoint(HTTPEndpoint):
+    @requires("authenticated")
+    async def get(self, request: Request):
+        return config.templates.TemplateResponse(
+            "new_entry.html",
+            {
+                "request": request,
+            },
+        )
+
+    @requires("authenticated")
+    async def post(self, request: Request):
         form = await request.form()
-
-        employee = await database.fetch_one(
-            "SELECT id, name FROM employees WHERE name = :employee;",
-            {"employee": form["employee"]},
-        )
-
-        if not employee:
-            employee = await database.fetch_one(
-                "INSERT INTO employees (name) VALUES (:employee) RETURNING id, name;",
-                {"employee": form["employee"]},
-            )
-
-        new_entries = []
-
-        try:
-            contents = await form["entries"].read()
-            file = io.StringIO(contents.decode("utf-8"), newline="")
-            for data in csv.reader(file):
-                happened_on = datetime.date.fromisoformat(data[0])
-                expires_on = happened_on + datetime.timedelta(days=90)
-                new_entries.append(
-                    Record(
-                        employee_id=employee.id,
-                        happened_on=happened_on,
-                        expires_on=expires_on,
-                        value=int(data[1]),
-                        balance=int(data[1]),
-                    )
-                )
-        except RuntimeError:
-            raise HTTPException(400)
-
-        # This must be sorted before the query below.
-        new_entries.sort(key=lambda entry: entry.happened_on)
-
-        old_entries = await database.fetch_all(
-            """
-            SELECT id, happened_on, expires_on, balance FROM entries 
-            WHERE employee_id = :employee_id 
-            AND expires_on > :reference_date
-            AND balance != 0 
-            ORDER BY happened_on;
+        values = {
+            "account_id": request.user.id,
+            "happened_on": form["happened_on"],
+            "expires_on": form["happened_on"],
+            "value": form["value"],
+            "residue": form["value"],
+            "multiplier": 1,
+        }
+        await database.execute_one(
+            query="""
+            INSERT INTO entries (account_id, happened_on, expires_on, value, residue, multiplier)
+            VALUES (:account_id, :happened_on, :expires_on, :value, :residue, :multiplier)
             """,
-            {"employee_id": employee.id, "reference_date": new_entries[0].happened_on},
+            values=values,
         )
-
-        # Saved entries to be updated.
-        changed_entries = []
-
-        for new_entry in new_entries:
-            for old_entry in old_entries:
-                if old_entry.balance == 0:
-                    continue
-
-                if new_entry.happened_on > old_entry.expires_on:
-                    continue
-
-                if (old_entry.balance > 0) == (new_entry.balance > 0):
-                    continue
-
-                # Calculate new balance.
-                balance = old_entry.balance + new_entry.balance
-
-                # If new balance has the same sign as old entry balance it must still have balance left.
-                if balance > 0 and old_entry.balance > 0:
-                    old_entry.balance = balance
-                    new_entry.balance = 0
-                else:
-                    old_entry.balance = 0
-                    new_entry.balance = balance
-
-                # Flag for update if it was an existing entry.
-                if "id" in old_entry:
-                    changed_entries.append(
-                        Record(
-                            id=old_entry.id,
-                            balance=old_entry.balance,
-                        )
-                    )
-
-            # New entry must be considered in the next iteration.
-            old_entries.append(new_entry)
-
-            # Re-sort old entries in last entry was out of order.
-            old_entries.sort(key=lambda entry: entry.happened_on)
-
-        # Update and insert must either fail or succeed together.
-        async with database.transaction():
-            await database.execute_many(
-                """
-                UPDATE entries SET balance = :balance WHERE id = :id;
-                """,
-                values=changed_entries,
-            )
-            await database.execute_many(
-                """
-                INSERT INTO entries (employee_id, happened_on, expires_on, value, balance)
-                VALUES (:employee_id, :happened_on, :expires_on, :value, :balance);
-                """,
-                values=new_entries,
-            )
-
-        request.flash(
-            "%d registro(s) importado(s) para o(a) funcionário(a) %s"
-            % (
-                len(new_entries),
-                employee.name,
-            ),
-            "positive",
-        )
-
-        return RedirectResponse("/", status_code=303)
-
-
-# Upload endpoint.
-class Upload(HTTPEndpoint):
-    async def get(self, request: Request):
-        employees = await database.fetch_all("SELECT id, name FROM employees;")
-        return templates.TemplateResponse(
-            "upload.html",
-            {
-                "request": request,
-                "employees": employees,
-            },
-        )
-
-
-# Employees endpoint.
-class Employees(HTTPEndpoint):
-    async def get(self, request: Request):
-        employees = await database.fetch_all("SELECT id, name FROM employees;")
-        entries = []
-        employee_id = request.path_params.get("id")
-
-        if employee_id:
-            entries = await database.fetch_all(
-                """
-                SELECT id, happened_on, expires_on, value, balance, expires_on < current_date as is_expired
-                FROM entries
-                WHERE employee_id = :employee
-                ORDER BY happened_on;
-                """,
-                {"employee": employee_id},
-            )
-
-        return templates.TemplateResponse(
-            "employee.html",
-            {
-                "request": request,
-                "employee_id": employee_id,
-                "employees": employees,
-                "entries": entries,
-            },
-        )
+        request.flash(message="✅ Registro criado.", type="positive")
+        return RedirectResponse(url=request.url_for(name="new_entry"))
 
 
 # Exception handler.
 async def handle_exception(request: Request, exception: HTTPException | Exception):
-    return templates.TemplateResponse(
+    return config.templates.TemplateResponse(
         "error.html",
         {"request": request, "status_code": exception.status_code},
         status_code=exception.status_code,
     )
 
 
+routes = [
+    Mount("/static", StaticFiles(directory="static"), name="static"),
+    Route("/", RootEndpoint, methods=["GET"], name="root"),
+    Route("/sign-in", SessionEndpoint, methods=["GET", "POST"], name="sign_in"),
+    Route("/session", SessionEndpoint, methods=["DELETE"], name="session"),
+    Route("/entries/new", EntriesEndpoint, methods=["GET"], name="new_entry"),
+]
+
 # Create Starlette application.
 app = Starlette(
-    debug=DEBUG,
+    debug=config.DEBUG,
     on_startup=[database.connect],
     on_shutdown=[database.disconnect],
     middleware=[
         Middleware(
             SessionMiddleware,
-            secret_key=SESSION_KEY,
+            secret_key=config.SECRET_KEY,
             same_site="strict",
-            https_only=not DEBUG,
+            https_only=not config.DEBUG,
         ),
         Middleware(FlashMiddleware),
+        Middleware(
+            AuthenticationMiddleware,
+            backend=BasicAuthBackend(),
+            on_error=handle_exception,
+        ),
     ],
-    routes=[
-        Route("/", Summary, name="summary"),
-        Route("/upload", Upload, name="upload"),
-        Route("/employees", Employees, name="employees"),
-        Route("/employees/{id:int}", Employees, name="employee"),
-        Mount("/static", StaticFiles(directory="static"), name="static"),
-    ],
+    routes=routes,
     exception_handlers={
-        404: handle_exception,
         HTTPException: handle_exception,
         Exception: handle_exception,
     },
 )
+
+# Set application state.
+app.state.debug = config.DEBUG
+app.state.version = config.VERSION
+app.state.revision = config.REVISION
 
 # Run with uvicorn.
 if __name__ == "__main__":
@@ -293,6 +227,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=PORT,
-        reload=DEBUG,
+        port=config.PORT,
+        reload=config.DEBUG,
+        debug=config.DEBUG,
     )

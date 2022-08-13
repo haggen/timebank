@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir pipenv
 # Install dependencies.
 WORKDIR /root/src
 COPY Pipfile* ./
-RUN pipenv install --deploy --system
+RUN pipenv install --deploy --system --dev
 
 # Expose the application's port.
 EXPOSE 5000

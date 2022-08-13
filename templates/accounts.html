@@ -1,0 +1,61 @@
+{% extends "_layout.html" %} {% block title %}Contas — {{ super() }}{% endblock
+%} {% block content %}
+<main class="content">
+  {% else %}
+  <div class="columns">
+    <nav>
+      <ul class="menu">
+        {% for employee in employees %}
+        <li>
+          <a
+            href="{{ request.url_for('employee', id=employee.id) }}"
+            class="menu-item {{ 'active' if employee_id is eq employee.id }}"
+            >{{ employee.name }}</a
+          >
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+
+    <div style="grid-column: span 4">
+      {% if not account %}
+      <div class="hero">
+        <h1>👈</h1>
+        <p>Nenhuma conta selecionada.</p>
+      </div>
+      {% elif 0 == entries | length %}
+      <div class="hero">
+        <h1>🌵</h1>
+        <p>Nenhum registro encontrado.</p>
+      </div>
+      {% else %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Expiração</th>
+            <th>Entrada</th>
+            <th>Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in entries %}
+          <tr>
+            <td>{{ entry.happened_on.strftime("%d/%m/%Y") }}</td>
+            <td class="text {{ 'striked grayed' if entry.is_expired }}">
+              {{ entry.expires_on.strftime("%d/%m/%Y") }}
+            </td>
+            <td>{{ "+" if entry.value > 0 }}{{ entry.value }}</td>
+            <td class="text {{ 'negative' if entry.balance > 0}}">
+              {{ "+" if entry.balance > 0 }}{{ entry.balance }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}
