@@ -1,44 +1,46 @@
 {% extends "_layout.html" %} {% block title %}Erro — {{ super() }}{% endblock %}
 {% block content %}
-<main class="main">
-  <article class="hero">
-    {% if status_code == 404 %}
-    <div class="stack" style="gap: 0.5rem">
-      <h1>🕳️</h1>
-      <p>Página não encontrada.</p>
-    </div>
+<section class="hero">
+  {% if status_code == 404 %}
+  <div class="stack" style="gap: 0.5rem">
+    <h1>🕳️</h1>
+    <p>Página não encontrada.</p>
+  </div>
+  <div class="flex">
     <a
       href="{{ request.headers.get('referer', request.url_for('root')) }}"
       class="button primary"
       >Voltar</a
     >
-    {% elif status_code == 401 %}
-    <div class="stack" style="gap: 0.5rem">
-      <h1>🚫</h1>
-      <p>Não autorizado.</p>
-    </div>
+  </div>
+  {% elif status_code == 401 %}
+  <div class="stack" style="gap: 0.5rem">
+    <h1>🚫</h1>
+    <p>Não autorizado.</p>
+  </div>
+  <div class="flex">
     <a href="{{ request.url_for('sign_in') }}" class="button primary"
       >Tentar novamente</a
     >
-    {% else %}
-    <div class="stack" style="gap: 0.5rem">
-      <h1>😬</h1>
-      <p>Tivemos um problema inesperado.</p>
-    </div>
-    <div class="flex">
-      <a
-        href="{{ request.headers.get('referer', request.url_for('root')) }}"
-        class="button primary"
-        >Tentar novamente</a
-      >
-      <a
-        href="https://github.com/haggen/timebank/discussions"
-        class="button secondary"
-        target="_blank"
-        >Reportar</a
-      >
-    </div>
-    {% endif %}
-  </article>
-</main>
+  </div>
+  {% else %}
+  <div class="stack" style="gap: 0.5rem">
+    <h1>😬</h1>
+    <p>Tivemos um problema inesperado.</p>
+  </div>
+  <div class="flex">
+    <a
+      href="{{ request.headers.get('referer', request.url_for('root')) }}"
+      class="button primary"
+      >Tentar novamente</a
+    >
+    <a
+      href="https://github.com/haggen/timebank/discussions"
+      class="button secondary"
+      target="_blank"
+      >Reportar</a
+    >
+  </div>
+  {% endif %}
+</section>
 {% endblock %}

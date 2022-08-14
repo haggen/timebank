@@ -4,11 +4,11 @@ class Record(dict):
     Extends dict to support attribute-style access.
     """
 
-    def __getattr__(self, key):
+    def __getattr__(self, name: str):
         try:
-            return self[key]
+            return self[name]
         except KeyError:
-            raise AttributeError(key)
+            raise AttributeError(name)
 
-    def __setattr__(self, key, value):
-        self[key] = value
+    def __setattr__(self, name: str, value: any):
+        self[name] = value

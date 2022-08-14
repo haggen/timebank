@@ -1,14 +1,12 @@
 {% extends "_layout.html" %} {% block title %}Entrar — {{ super() }}{% endblock
 %} {% block content %}
-<main class="content">
-  <article class="hero">
-    <div class="stack" style="gap: 0.5rem">
-      <h1>👋</h1>
-      <p>Utilize sua conta Google Workspace.</p>
-    </div>
-    <form method="post">
-      <button type="submit" class="button">Entrar</button>
-    </form>
-  </article>
-</main>
+<section class="hero">
+  <div class="stack" style="gap: 0.5rem">
+    <h1>👋</h1>
+    <p>Utilize sua conta Google Workspace.</p>
+  </div>
+  <form method="post" data-turbo="false">
+    <button type="submit" class="button primary">Entrar</button>
+  </form>
+</section>
 {% endblock %}

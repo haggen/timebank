@@ -36,6 +36,7 @@ class Google:
         """
         return self.session.authorization_url(
             url=self.authorization_base_url,
+            include_granted_scopes="true",
             access_type="offline",
             prompt="select_account",
         )

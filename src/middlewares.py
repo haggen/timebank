@@ -1,20 +1,20 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-Flash = dict[str, str]
+
+class Flash(dict):
+    def __init__(self, session: dict):
+        self.update(session.pop("flash", {}))
+        self.session = session
+
+    def __setitem__(self, name: str, value: any):
+        super().__setitem__(name, value)
+        if not "flash" in self.session:
+            self.session["flash"] = {}
+        self.session["flash"][name] = value
 
 
-def flash(request: Request, message: str = None, type: str = "") -> Flash | None:
-    """
-    Get or set flash message.
-    """
-    if message is None:
-        return request.state.flash
-
-    request.session["flash"] = {"type": type, "message": message}
-
-
-Request.flash = flash
+Request.flash = property(lambda request: request.state.flash)
 
 
 class FlashMiddleware(BaseHTTPMiddleware):
@@ -23,5 +23,5 @@ class FlashMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request, call_next):
-        request.state.flash = request.session.pop("flash", {})
+        request.state.flash = Flash(request.session)
         return await call_next(request)

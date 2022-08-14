@@ -4,26 +4,68 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="O Banco de Horas é um ferramenta de acompanhamento de horas extras para profissionais autônomos e pequenas empresas."
+    />
 
     <title>{% block title %}Banco de Horas{% endblock %}</title>
 
+    <link rel="icon" href="/static/icon-32.svg" />
+    <link rel="mask-icon" href="/static/icon-32.svg" color="#000" />
+    <link rel="apple-touch-icon" href="/static/icon-180.png" />
     <link href="/static/reset.css" rel="stylesheet" />
     <link href="/static/style.css" rel="stylesheet" />
     <link href="https://fonts.bunny.net" rel="preconnect" />
     <link
-      href="https://fonts.bunny.net/css?family=Lato:400,700"
+      href="https://fonts.bunny.net/css?family=Lato:400,700&display=swap"
       rel="stylesheet"
     />
+    <link
+      href="https://fonts.bunny.net/css?family=Inter:400,700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.bunny.net/css?family=Roboto:400,700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.bunny.net/css?family=Open+Sans:400,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="/static/script.js" type="module"></script>
   </head>
 
   <body>
+    <div id="debug">
+      <pre>
+        Session: {{ request.session }}
+        Flash: {{ request.flash }}
+      </pre>
+    </div>
+
+    {% with alert = request.flash.alert %} {% if alert %}
+    <div role="alert" class="alert {{ alert.type }}">
+      <p>{{ alert.message }}</p>
+      <button
+        type="button"
+        aria-label="Fechar"
+        class="button"
+        onclick="this.parentElement.remove()"
+      >
+        ×
+      </button>
+    </div>
+    {% endif %} {% endwith %}
+
     <div class="layout">
       <nav class="topbar" aria-label="Navegação principal">
         <h1 class="brand">
           <a href="/">
             <svg
               viewBox="0 0 161 18"
-              fill="none"
               xmlns="http://www.w3.org/2000/svg"
               aria-label="Banco de Horas"
             >
@@ -67,20 +109,20 @@
           </a>
         </h1>
 
-        {% if request.user %}
+        {% if request.user.is_authenticated %}
         <ul class="menu inline">
           <li>
             <a
-              href="{{ request.url_for('root') }}"
-              class="menu-item {{ 'active' if request.url == request.url_for('root') }}"
+              href="{{ request.url_for('new_entry') }}"
+              class="menu-item {{ 'active' if request.url == request.url_for('new_entry') }}"
             >
               Registrar
             </a>
           </li>
           <li>
             <a
-              href="{{ request.url_for('root') }}"
-              class="menu-item {{ 'active' if request.url == request.url_for('root') }}"
+              href="{{ request.url_for('history') }}"
+              class="menu-item {{ 'active' if request.url == request.url_for('history') }}"
             >
               Histórico
             </a>
@@ -88,9 +130,14 @@
         </ul>
 
         <ul class="menu inline">
-          <li>{{ request.user.display_name }}</li>
           <li>
-            <a href="{{ request.url_for('session') }}" data-method="DELETE"
+            <span class="menu-item">{{ request.user.display_name }}</span>
+          </li>
+          <li>
+            <a
+              href="{{ request.url_for('session') }}"
+              data-turbo-method="DELETE"
+              class="menu-item"
               >Sair</a
             >
           </li>
@@ -98,15 +145,18 @@
         {% endif %}
       </nav>
 
-      {% block content %}{% endblock %}
+      <main class="main">{% block content %}{% endblock %}</main>
 
       <footer class="footer">
         <ul class="menu inline">
-          <li>© 2022 Jogajunto</li>
+          <li>
+            <span class="menu-item">© 2022 Jogajunto</span>
+          </li>
           <li>
             <a
               href="https://github.com/haggen/timebank/discussions/14"
               target="_blank"
+              class="menu-item"
               >Termos e políticas</a
             >
           </li>
@@ -114,11 +164,12 @@
             <a
               href="https://github.com/haggen/timebank/discussions"
               target="_blank"
+              class="menu-item"
               >Ajuda</a
             >
           </li>
           <li>
-            <span class="text grayed">
+            <span class="menu-item text grayed">
               Ver. {{ request.app.state.version }} Rev. {{
               request.app.state.revision }}
             </span>

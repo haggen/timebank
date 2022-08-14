@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from databases import Database
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -20,38 +19,29 @@ from starlette.routing import Route, Mount
 from starlette.requests import Request
 from middlewares import FlashMiddleware
 from google import Google
+from database import *
 
 import logging
 import config
 
-# Create database instance.
-database = Database(config.DATABASE_URL)
-
 # Logger instance.
 log = logging.getLogger("starlette")
 
-
+# Authentication backend.
 class BasicAuthBackend(AuthenticationBackend):
     async def authenticate(self, conn):
         if not "email" in conn.session:
             return
 
-        account = await database.fetch_one(
-            query="""
-                SELECT id, role, name, email, picture_url, domain, settings
-                FROM accounts JOIN organizations ON accounts.organization_id = organizations.id 
-                WHERE email = :email LIMIT 1
-                """,
-            values={"email": conn.session["email"]},
-        )
+        user = await find_authenticated_user(email=conn.session["email"])
 
-        if not account:
+        if not user:
             raise AuthenticationError()
 
-        account.is_authenticated = True
-        account.display_name = account.name
+        user.is_authenticated = True
+        user.display_name = user.name
 
-        return AuthCredentials(["authenticated", account.role]), account
+        return AuthCredentials(["authenticated", user.role]), user
 
 
 class RootEndpoint(HTTPEndpoint):
@@ -64,20 +54,37 @@ class RootEndpoint(HTTPEndpoint):
 
 class SessionEndpoint(HTTPEndpoint):
     async def get(self, request: Request):
-        if not "code" in request.query_params:
-            request.session["next"] = request.query_params.get("next", None)
-            return config.templates.TemplateResponse(
-                "sign-in.html",
-                {
-                    "request": request,
-                },
-            )
+        if "next" in request.query_params:
+            request.session["next"] = request.query_params["next"]
+            request.flash["alert"] = {
+                "message": "🔒 Você precisa se autenticar.",
+                "type": "negative",
+            }
+        return config.templates.TemplateResponse(
+            "sign_in.html",
+            {
+                "request": request,
+            },
+        )
 
+    async def post(self, request: Request):
+        google = Google(request=request, redirect_uri=request.url_for(name="oauth"))
+        authorization_url, state = google.authorization_url()
+        request.session["state"] = state
+        return RedirectResponse(url=authorization_url, status_code=303)
+
+    @requires("authenticated")
+    async def delete(self, request: Request):
+        request.session.clear()
+        request.flash["alert"] = {"message": "🗝️ Sessão encerrada.", "type": "positive"}
+        return RedirectResponse(url=request.url_for(name="sign_in"), status_code=303)
+
+
+class OAuthEndpoint(HTTPEndpoint):
+    async def get(self, request: Request):
         try:
-            google = Google(
-                request=request, redirect_uri=request.url_for(name="sign_in")
-            )
-            token = google.fetech_token(
+            google = Google(request=request, redirect_uri=request.url_for(name="oauth"))
+            token = google.fetch_token(
                 returning_uri=str(request.url.replace(scheme="https")),
                 state=request.session.pop("state", None),
             )
@@ -90,86 +97,65 @@ class SessionEndpoint(HTTPEndpoint):
         request.session["token"] = token
 
         async with database.transaction():
-            organization = await database.fetch_one(
-                query="SELECT id FROM organizations WHERE domain = :hd",
-                values=userinfo,
-            )
+            organization = await find_organization(domain=userinfo["hd"])
             if not organization:
-                organization = await database.fetch_one(
-                    query="""
-                        INSERT INTO organizations (domain)
-                        VALUES (:hd) RETURNING id
-                        """,
-                    values=userinfo,
-                )
+                organization = await create_organization(domain=userinfo["hd"])
 
-            account = await database.fetch_one(
-                query="SELECT email FROM accounts WHERE email = :email", values=userinfo
-            )
+            account = await find_account(email=userinfo["email"])
             if not account:
-                account = await database.fetch_one(
-                    query="""
-                        INSERT INTO accounts (organization_id, email, name, picture_url)
-                        VALUES (:organization_id, :email, :name, :picture_url)
-                        RETURNING email
-                        """,
-                    values={
-                        "organization_id": organization["id"],
-                        "email": userinfo["email"],
-                        "name": userinfo["name"],
-                        "picture_url": userinfo["picture"],
-                    },
+                account = await create_account(
+                    organization_id=organization.id,
+                    role="employee",
+                    email=userinfo["email"],
+                    name=userinfo["name"],
+                    picture=userinfo["picture"],
                 )
 
         request.session["email"] = account.email
 
         return RedirectResponse(
-            url=request.session.pop("next", request.url_for(name="root"))
+            url=request.session.pop("next", request.url_for(name="root")),
+            status_code=302,
         )
 
-    async def post(self, request: Request):
-        google = Google(request=request, redirect_uri=request.url_for(name="sign_in"))
-        authorization_url, state = google.authorization_url()
-        request.session["state"] = state
-        return RedirectResponse(url=authorization_url)
 
-    @requires("authenticated")
-    async def delete(self, request: Request):
-        request.session.clear()
-        request.flash(message="🗝️ Sessão encerrada.", type="positive")
-        return RedirectResponse(url=request.url_for(name="sign_in"))
-
-
-class EntriesEndpoint(HTTPEndpoint):
-    @requires("authenticated")
+class NewEntryEndpoint(HTTPEndpoint):
+    @requires("authenticated", redirect="sign_in")
     async def get(self, request: Request):
         return config.templates.TemplateResponse(
             "new_entry.html",
             {
                 "request": request,
+                "today": datetime.date.today(),
             },
         )
 
-    @requires("authenticated")
+
+class EntriesEndpoint(HTTPEndpoint):
+    @requires("authenticated", redirect="sign_in")
+    async def get(self, request: Request):
+        entries = await find_entries()
+        return config.templates.TemplateResponse(
+            "history.html",
+            {
+                "request": request,
+                "entries": entries,
+            },
+        )
+
+    @requires("authenticated", redirect="sign_in")
     async def post(self, request: Request):
         form = await request.form()
         values = {
             "account_id": request.user.id,
-            "happened_on": form["happened_on"],
-            "expires_on": form["happened_on"],
-            "value": form["value"],
-            "residue": form["value"],
+            "happened_on": datetime.date.fromisoformat(form["happened_on"]),
+            "expires_on": datetime.date.fromisoformat(form["happened_on"]),
+            "value": int(form["value"]),
             "multiplier": 1,
         }
-        await database.execute_one(
-            query="""
-            INSERT INTO entries (account_id, happened_on, expires_on, value, residue, multiplier)
-            VALUES (:account_id, :happened_on, :expires_on, :value, :residue, :multiplier)
-            """,
-            values=values,
-        )
-        request.flash(message="✅ Registro criado.", type="positive")
-        return RedirectResponse(url=request.url_for(name="new_entry"))
+        await create_entry(**values)
+        request.flash["alert"] = {"message": "✅ Registro criado.", "type": "positive"}
+        return RedirectResponse(url=request.url_for(name="new_entry"), status_code=303)
 
 
 # Exception handler.
@@ -185,8 +171,10 @@ routes = [
     Mount("/static", StaticFiles(directory="static"), name="static"),
     Route("/", RootEndpoint, methods=["GET"], name="root"),
     Route("/sign-in", SessionEndpoint, methods=["GET", "POST"], name="sign_in"),
+    Route("/oauth", OAuthEndpoint, methods=["GET"], name="oauth"),
     Route("/session", SessionEndpoint, methods=["DELETE"], name="session"),
-    Route("/entries/new", EntriesEndpoint, methods=["GET"], name="new_entry"),
+    Route("/entries/new", NewEntryEndpoint, methods=["GET"], name="new_entry"),
+    Route("/history", EntriesEndpoint, methods=["GET", "POST"], name="history"),
 ]
 
 # Create Starlette application.
@@ -198,7 +186,7 @@ app = Starlette(
         Middleware(
             SessionMiddleware,
             secret_key=config.SECRET_KEY,
-            same_site="strict",
+            same_site="lax" if config.DEBUG else "strict",
             https_only=not config.DEBUG,
         ),
         Middleware(FlashMiddleware),

@@ -1,0 +1,63 @@
+{% extends "_layout.html" %} {% block title %}Contas — {{ super() }}{% endblock
+%} {% block content %}
+<article class="stack">
+  <h1 class="heading two">Detalhes</h1>
+
+  <table class="table">
+    <tbody>
+      <tr>
+        <th>Nome</th>
+        <td>{{ request.user.name }}</td>
+      </tr>
+      <tr>
+        <th>E-mail</th>
+        <td>{{ request.user.email }}</td>
+      </tr>
+      <tr>
+        <th>Cadastro</th>
+        <td>{{ request.user.created_at.strftime("%d/%m/%Y") }}</td>
+      </tr>
+      <tr>
+        <th>Saldo</th>
+        <td>-</td>
+      </tr>
+    </tbody>
+  </table>
+</article>
+
+<article class="stack">
+  <h1 class="heading two">Histórico</h1>
+
+  {% if 0 == entries | length %}
+  <div class="hero">
+    <h1>🏜️</h1>
+    <p>Nenhum registro encontrado.</p>
+  </div>
+  {% else %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Vencimento</th>
+        <th>Valor</th>
+        <th>Restante</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr>
+        <td>{{ entry.happened_on.strftime("%d/%m/%Y") }}</td>
+        <td class="text {{ 'striked grayed' if entry.is_expired }}">
+          {{ entry.expires_on.strftime("%d/%m/%Y") }}
+        </td>
+        <td>{{ "+" if entry.value > 0 }}{{ entry.value }}</td>
+        <td class="text {{ 'negative' if entry.residue > 0}}">
+          {{ "+" if entry.residue > 0 }}{{ entry.residue }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</article>
+{% endblock %}
