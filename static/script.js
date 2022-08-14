@@ -1,9 +1,22 @@
 import "https://cdn.skypack.dev/@hotwired/turbo";
 
+const supportedUnits = [
+  {
+    pattern: "(([+-]?)\\d+(,\\d+)?)(:|horas|hora|h)",
+    parse: (match) => Math.round(parseFloat(match[1].replace(",", ".")) * 60),
+  },
+  {
+    pattern: "(([+-]?)\\d+)(minutos|minuto|min|m|$)",
+    parse: (match) => parseInt(match[1], 10),
+  },
+];
+
 function parseValue(formattedValue) {
+  const normalizedValue = formattedValue.toLowerCase().replace(/\s+/g, "");
+
   // Handle numbers only.
-  if (/^\d+$/.test(formattedValue)) {
-    const parsedValue = parseInt(formattedValue, 10);
+  if (/^[+-]?\d+$/g.test(normalizedValue)) {
+    const parsedValue = parseInt(normalizedValue, 10);
     if (!isNaN(parsedValue)) {
       return parsedValue;
     }
@@ -11,19 +24,14 @@ function parseValue(formattedValue) {
 
   let parsedValue = 0;
 
-  // Handle numbers with units.
-  const matches = formattedValue.matchAll(
-    /-?(\d+)\s*(:|h|horas?|m|minutos?|)\s*/gi
-  );
-  for (const match of matches) {
-    const [, value, unit] = match;
-    if (unit.toLowerCase().startsWith("h") || unit === ":") {
-      parsedValue += parseInt(value, 10) * 60;
-    } else {
-      parsedValue += parseInt(value, 10);
+  supportedUnits.forEach((unit) => {
+    const matches = normalizedValue.matchAll(new RegExp(unit.pattern, "g"));
+    for (const match of matches) {
+      parsedValue += unit.parse(match);
     }
-  }
-  return formattedValue.startsWith("-") ? parsedValue * -1 : parsedValue;
+  });
+
+  return parsedValue;
 }
 
 function formatValue(value) {
@@ -33,8 +41,10 @@ function formatValue(value) {
     return "";
   }
 
-  const h = Math.floor(Math.abs(parsedValue) / 60);
-  const m = Math.abs(parsedValue) % 60;
+  const absoluteValue = Math.abs(parsedValue);
+
+  const h = Math.floor(absoluteValue / 60);
+  const m = absoluteValue % 60;
 
   const parts = [];
 
@@ -45,7 +55,6 @@ function formatValue(value) {
     parts.push(`${m} minuto${m !== 1 ? "s" : ""}`);
   }
 
-  // return (parsedValue < 0 ? "-" : "") + parts.join(" ");
   return parts.join(" ");
 }
 
@@ -95,17 +104,16 @@ class EntryForm extends HTMLElement {
       if (isNaN(parsedValue)) {
         return;
       }
-      this.value = parseValue;
-      this.updateFormattedValueInput();
+      this.value = parsedValue;
+      this.updateInputs();
     });
 
-    this.formattedValueInput.addEventListener("input", (e) => {
+    this.formattedValueInput.addEventListener("change", (e) => {
       this.value = parseValue(e.target.value);
-      this.updateValueInput();
+      this.updateInputs();
     });
 
-    this.formattedValueInput.pattern =
-      "^-?(\\d+|(\\d+\\s*(:|h|horas?|m|minutos?|)\\s*)+)$";
+    this.formattedValueInput.pattern = "^(\\d+ (horas?|minutos?)(s|$))+";
   }
 
   updateValueInput() {
