@@ -216,6 +216,8 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=config.PORT,
+        server_header=False,
+        forwarded_allow_ips="*",
         reload=config.DEBUG,
         debug=config.DEBUG,
     )
