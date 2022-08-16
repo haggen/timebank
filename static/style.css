@@ -5,6 +5,7 @@ body {
 
 html {
   font-family: Lato, system-ui, sans-serif;
+  scrollbar-gutter: stable;
 }
 
 p {
