@@ -247,6 +247,10 @@ p {
   padding-inline: 0.5rem;
 }
 
+.input:invalid {
+  border-color: darkred;
+}
+
 .button {
   padding-bottom: 0.125rem; /* Fix text alignment. */
   padding-inline: 1.5rem;
