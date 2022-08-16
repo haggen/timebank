@@ -4,7 +4,6 @@ from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
     AuthenticationError,
-    SimpleUser,
     requires,
 )
 from starlette.middleware import Middleware
@@ -145,11 +144,13 @@ class EntriesEndpoint(HTTPEndpoint):
 
     @requires("authenticated", redirect="sign_in")
     async def post(self, request: Request):
+        settings = json.loads(request.user.settings)
         form = await request.form()
         values = {
             "account_id": request.user.id,
             "happened_on": datetime.date.fromisoformat(form["happened_on"]),
-            "expires_on": datetime.date.fromisoformat(form["happened_on"]),
+            "expires_on": datetime.date.fromisoformat(form["happened_on"])
+            + datetime.timedelta(days=settings["expires_in"]),
             "value": int(form["value"]),
             "multiplier": 1,
         }

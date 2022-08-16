@@ -20,7 +20,10 @@ organization_default_settings = json.dumps(
 
 async def create_organization(domain: str):
     return await database.fetch_one(
-        query="INSERT INTO organizations (domain, settings) VALUES (:domain, :settings) RETURNING *",
+        query="""
+            INSERT INTO organizations (domain, settings) 
+            VALUES (:domain, :settings) RETURNING *
+        """,
         values={"domain": domain, "settings": organization_default_settings},
     )
 
@@ -89,19 +92,78 @@ async def create_entry(
     value: int,
     multiplier: float,
 ):
-    await database.execute(
-        query="""
-            INSERT INTO entries (account_id, happened_on, expires_on, value, residue, multiplier)
-            VALUES (:account_id, :happened_on, :expires_on, :value, :value, :multiplier)
-        """,
-        values={
-            "account_id": account_id,
-            "happened_on": happened_on,
-            "expires_on": expires_on,
-            "value": value,
-            "multiplier": multiplier,
-        },
-    )
+    values = {
+        "account_id": account_id,
+        "happened_on": happened_on,
+        "expires_on": expires_on,
+        "value": value,
+        "multiplier": multiplier,
+    }
+
+    async with database.transaction():
+        await database.fetch_one(
+            query="""
+                INSERT INTO entries (account_id, happened_on, expires_on, value, residue, multiplier)
+                VALUES (:account_id, :happened_on, :expires_on, :value, :value, :multiplier)
+                RETURNING *
+            """,
+            values=values,
+        )
+
+        entries = await database.fetch_all(
+            query="""
+                SELECT id, happened_on, expires_on, residue
+                FROM entries 
+                WHERE account_id = :account_id AND expires_on > :happened_on AND residue != 0 
+                ORDER BY happened_on;
+            """,
+            values={
+                "account_id": account_id,
+                "happened_on": happened_on,
+            },
+        )
+
+        for a in entries:
+            # If there's no residue, skip.
+            if a.residue == 0:
+                continue
+
+            # For each entry a we're checking if entry b should've changed it.
+            for b in entries:
+                # If they're the same entry, skip.
+                if a == b:
+                    continue
+
+                # If entry b happened after entry a expires, then we're done with entry a.
+                if a.expires_on < b.happened_on:
+                    break
+
+                # If they're the same type, skip.
+                if (a.residue > 0) == (b.residue > 0):
+                    continue
+
+                # Calculate new residue.
+                residue = a.residue + b.residue
+
+                # If new residue has the same sign as entry a, then entry a must still has residue left.
+                if residue > 0:
+                    b.residue = 0
+                    a.residue = residue
+                # Otherwise entry b still has residue left.
+                else:
+                    b.residue = residue
+                    a.residue = 0
+
+                # Flag for update.
+                a.changed = True
+                b.changed = True
+
+        await database.execute_many(
+            """
+            UPDATE entries SET residue = :residue WHERE id = :id;
+            """,
+            values=({"residue": e.residue, "id": e.id} for e in entries if e.changed),
+        )
 
 
 async def find_entries():
