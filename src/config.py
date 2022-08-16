@@ -35,5 +35,4 @@ templates = Jinja2Templates(directory="templates", auto_reload=DEBUG)
 
 # Configure loggers.
 if DEBUG:
-    logging.getLogger("databases").setLevel(logging.DEBUG)
-    logging.getLogger("authlib").setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
