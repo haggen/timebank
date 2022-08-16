@@ -113,7 +113,7 @@ class EntryForm extends HTMLElement {
       this.updateInputs();
     });
 
-    this.formattedValueInput.pattern = "^(\\d+ (horas?|minutos?)(s|$))+";
+    this.formattedValueInput.pattern = "^(\\d+ (horas?|minutos?)(\\s|$))+";
   }
 
   updateValueInput() {
