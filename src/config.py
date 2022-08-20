@@ -1,7 +1,6 @@
 from starlette.config import Config
 from starlette.datastructures import Secret
 from starlette.templating import Jinja2Templates
-from databases import DatabaseURL
 
 import logging
 
@@ -18,7 +17,7 @@ PORT = config("PORT", cast=int, default=5000)
 SECRET_KEY = config("SECRET_KEY", cast=Secret)
 
 # Database URL, e.g. postgresql://username:password@hostname/database
-DATABASE_URL = config("DATABASE_URL", cast=DatabaseURL)
+DATABASE_URL = config("DATABASE_URL", cast=Secret)
 
 # Appication major version, e.g. 1, 2, etc.
 VERSION = config("VERSION", cast=int, default=0)

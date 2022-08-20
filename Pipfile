@@ -10,8 +10,8 @@ jinja2 = "*"
 itsdangerous = "*"
 python-multipart = "*"
 requests-oauthlib = "*"
-databases = {extras = ["asyncpg"], version = "*"}
 sqlalchemy = "*"
+asyncpg = "*"
 
 [dev-packages]
 black = "*"

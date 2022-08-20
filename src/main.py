@@ -14,12 +14,14 @@ from starlette.endpoints import HTTPEndpoint
 from starlette.exceptions import HTTPException
 from starlette.routing import Route, Mount
 from starlette.requests import HTTPConnection, Request
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+from database import Session, Organization, Account, Entry
 from google import Google
 from database import *
 
 import datetime
 import logging
-import flash
 import config
 
 # Logger instance.
@@ -31,7 +33,13 @@ class BasicAuthBackend(AuthenticationBackend):
         if not "email" in conn.session:
             return AuthCredentials(), UnauthenticatedUser()
 
-        account = await Account.get(Account.email == conn.session["email"])
+        async with Session() as session:
+            account = await session.scalar(
+                select(Account)
+                .options(selectinload(Account.organization))
+                .where(Account.email == conn.session["email"])
+                .limit(1)
+            )
 
         if not account:
             return AuthCredentials(), UnauthenticatedUser()
@@ -94,23 +102,35 @@ class OAuthEndpoint(HTTPEndpoint):
         # Save token in session.
         request.session["token"] = token
 
-        async with database.transaction():
-            organization = await Organization.get(Organization.domain == userinfo["hd"])
-            if not organization:
-                organization = await Organization.create(
-                    Organization.domain == userinfo["hd"]
+        async with Session() as session:
+            async with session.begin():
+                organization = await session.scalar(
+                    select(Organization)
+                    .where(Organization.domain == userinfo["hd"])
+                    .limit(1)
                 )
-                organization.is_new = True
 
-            account = await Account.get(Account.email == userinfo["email"])
-            if not account:
-                account = await Account.create(
-                    organization_id=organization.id,
-                    role="manager" if organization.is_new else "employee",
-                    email=userinfo["email"],
-                    name=userinfo["name"],
-                    picture=userinfo["picture"],
+                if not organization:
+                    session.add(Organization.create(domain=userinfo["hd"]))
+
+                account = await session.scalar(
+                    select(Account).where(Account.email == userinfo["email"]).limit(1)
                 )
+
+                if not account:
+                    session.add(
+                        Account(
+                            organization_id=organization.id,
+                            role="manager"
+                            if organization in session.new
+                            else "employee",
+                            email=userinfo["email"],
+                            name=userinfo["name"],
+                            picture=userinfo["picture"],
+                        )
+                    )
+
+                session.commit()
 
         request.session["email"] = account.email
 
@@ -135,12 +155,17 @@ class NewEntryEndpoint(HTTPEndpoint):
 class EntriesEndpoint(HTTPEndpoint):
     @requires("authenticated", redirect="sign_in")
     async def get(self, request: Request):
-        entries = await Entry.get()
+        async with Session() as session:
+            entries = await session.scalars(
+                select(Entry)
+                .where(Entry.account_id == request.user.id)
+                .order_by(Entry.happened_on.desc(), Entry.id.desc())
+            )
         return config.templates.TemplateResponse(
             "history.html",
             {
                 "request": request,
-                "entries": entries,
+                "entries": entries.all(),
             },
         )
 
@@ -152,13 +177,18 @@ class EntriesEndpoint(HTTPEndpoint):
             days=request.user.organization.settings["expires_in"]
         )
         value = int(form["value"])
-        await Entry.create(
-            account_id=request.user.id,
-            happened_on=happened_on,
-            expires_on=expires_on,
-            value=value,
-            multiplier=1,
-        )
+        async with Session() as session:
+            async with session.begin():
+                await Entry.create(
+                    session,
+                    account_id=request.user.id,
+                    happened_on=happened_on,
+                    expires_on=expires_on,
+                    value=value,
+                    residue=value,
+                    multiplier=1.0,
+                )
+                await session.commit()
         request.flash["alert"] = {"message": "✅ Registro criado.", "type": "positive"}
         return RedirectResponse(url=request.url_for(name="new_entry"), status_code=303)
 
@@ -190,8 +220,6 @@ routes = [
 # Create Starlette application.
 app = Starlette(
     debug=config.DEBUG,
-    on_startup=[database.connect],
-    on_shutdown=[database.disconnect],
     middleware=[
         Middleware(
             SessionMiddleware,
