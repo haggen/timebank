@@ -143,12 +143,13 @@ p {
 /* --- */
 
 .hero {
+  align-items: center;
   background: whitesmoke linear-gradient(whitesmoke, white);
   border-radius: 1rem;
   color: dimgray;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
-  justify-content: center;
   padding-block: 6rem;
   text-align: center;
 }
