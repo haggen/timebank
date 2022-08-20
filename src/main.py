@@ -1,10 +1,8 @@
-#!/usr/bin/env python
-
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
-    AuthenticationError,
     requires,
+    UnauthenticatedUser,
 )
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -15,12 +13,13 @@ from starlette.staticfiles import StaticFiles
 from starlette.endpoints import HTTPEndpoint
 from starlette.exceptions import HTTPException
 from starlette.routing import Route, Mount
-from starlette.requests import Request
-from middlewares import FlashMiddleware
+from starlette.requests import HTTPConnection, Request
 from google import Google
 from database import *
 
+import datetime
 import logging
+import flash
 import config
 
 # Logger instance.
@@ -30,17 +29,17 @@ log = logging.getLogger("starlette")
 class BasicAuthBackend(AuthenticationBackend):
     async def authenticate(self, conn):
         if not "email" in conn.session:
-            return
+            return AuthCredentials(), UnauthenticatedUser()
 
-        user = await find_authenticated_user(email=conn.session["email"])
+        account = await Account.get(Account.email == conn.session["email"])
 
-        if not user:
-            raise AuthenticationError()
+        if not account:
+            return AuthCredentials(), UnauthenticatedUser()
 
-        user.is_authenticated = True
-        user.display_name = user.name
+        account.is_authenticated = True
+        account.display_name = account.name
 
-        return AuthCredentials(["authenticated", user.role]), user
+        return AuthCredentials(["authenticated", account.role]), account
 
 
 class RootEndpoint(HTTPEndpoint):
@@ -96,15 +95,18 @@ class OAuthEndpoint(HTTPEndpoint):
         request.session["token"] = token
 
         async with database.transaction():
-            organization = await find_organization(domain=userinfo["hd"])
+            organization = await Organization.get(Organization.domain == userinfo["hd"])
             if not organization:
-                organization = await create_organization(domain=userinfo["hd"])
+                organization = await Organization.create(
+                    Organization.domain == userinfo["hd"]
+                )
+                organization.is_new = True
 
-            account = await find_account(email=userinfo["email"])
+            account = await Account.get(Account.email == userinfo["email"])
             if not account:
-                account = await create_account(
+                account = await Account.create(
                     organization_id=organization.id,
-                    role="employee",
+                    role="manager" if organization.is_new else "employee",
                     email=userinfo["email"],
                     name=userinfo["name"],
                     picture=userinfo["picture"],
@@ -133,7 +135,7 @@ class NewEntryEndpoint(HTTPEndpoint):
 class EntriesEndpoint(HTTPEndpoint):
     @requires("authenticated", redirect="sign_in")
     async def get(self, request: Request):
-        entries = await find_entries()
+        entries = await Entry.get()
         return config.templates.TemplateResponse(
             "history.html",
             {
@@ -144,28 +146,35 @@ class EntriesEndpoint(HTTPEndpoint):
 
     @requires("authenticated", redirect="sign_in")
     async def post(self, request: Request):
-        settings = json.loads(request.user.settings)
         form = await request.form()
-        values = {
-            "account_id": request.user.id,
-            "happened_on": datetime.date.fromisoformat(form["happened_on"]),
-            "expires_on": datetime.date.fromisoformat(form["happened_on"])
-            + datetime.timedelta(days=settings["expires_in"]),
-            "value": int(form["value"]),
-            "multiplier": 1,
-        }
-        await create_entry(**values)
+        happened_on = datetime.date.fromisoformat(form["happened_on"])
+        expires_on = happened_on + datetime.timedelta(
+            days=request.user.organization.settings["expires_in"]
+        )
+        value = int(form["value"])
+        await Entry.create(
+            account_id=request.user.id,
+            happened_on=happened_on,
+            expires_on=expires_on,
+            value=value,
+            multiplier=1,
+        )
         request.flash["alert"] = {"message": "✅ Registro criado.", "type": "positive"}
         return RedirectResponse(url=request.url_for(name="new_entry"), status_code=303)
 
 
 # Exception handler.
 async def handle_exception(request: Request, exception: HTTPException | Exception):
+    request.session["email"] = ""
     return config.templates.TemplateResponse(
         "error.html",
         {"request": request, "status_code": exception.status_code},
         status_code=exception.status_code,
     )
+
+
+def handle_authentication_error(conn: HTTPConnection, exc: Exception):
+    raise HTTPException(status_code=401)
 
 
 routes = [
@@ -190,11 +199,10 @@ app = Starlette(
             same_site="lax" if config.DEBUG else "strict",
             https_only=not config.DEBUG,
         ),
-        Middleware(FlashMiddleware),
         Middleware(
             AuthenticationMiddleware,
             backend=BasicAuthBackend(),
-            on_error=handle_exception,
+            on_error=handle_authentication_error,
         ),
     ],
     routes=routes,

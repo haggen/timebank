@@ -7,10 +7,11 @@ name = "pypi"
 starlette = "*"
 uvicorn = "*"
 jinja2 = "*"
-databases = {extras = ["asyncpg"], version = "*"}
 itsdangerous = "*"
 python-multipart = "*"
 requests-oauthlib = "*"
+databases = {extras = ["asyncpg"], version = "*"}
+sqlalchemy = "*"
 
 [dev-packages]
 black = "*"

@@ -1,9 +1,9 @@
-import logging
-
 from starlette.config import Config
-from starlette.datastructures import Secret, CommaSeparatedStrings
+from starlette.datastructures import Secret
 from starlette.templating import Jinja2Templates
 from databases import DatabaseURL
+
+import logging
 
 # Configuration.
 config = Config(".env")
