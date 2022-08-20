@@ -18,7 +18,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from database import Session, Organization, Account, Entry
 from google import Google
-from database import *
+from ext.flash import FlashMiddleware
 
 import datetime
 import logging
@@ -232,6 +232,7 @@ app = Starlette(
             backend=BasicAuthBackend(),
             on_error=handle_authentication_error,
         ),
+        Middleware(FlashMiddleware),
     ],
     routes=routes,
     exception_handlers={
