@@ -27,14 +27,14 @@
   </head>
 
   <body>
+    {% if request.state.debug %}
     <div id="debug">
       <pre>
         Session: {{ request.session }}
         Flash: {{ request.flash }}
       </pre>
     </div>
-
-    {% with alert = request.flash.alert %} {% if alert %}
+    {% endif %} {% with alert = request.flash.alert %} {% if alert %}
     <div role="alert" class="alert {{ alert.type }}">
       <p>{{ alert.message }}</p>
       <button
