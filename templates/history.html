@@ -1,5 +1,5 @@
-{% extends "_layout.html" %} {% block title %}Contas — {{ super() }}{% endblock
-%} {% block content %}
+{% extends "_layout.html" %} {% block title %}Histórico — {{ super() }}{%
+endblock %} {% block content %}
 <article class="stack">
   <h1 class="heading two">Detalhes</h1>
 
@@ -30,8 +30,10 @@
 
   {% if 0 == expirations | length %}
   <div class="hero">
-    <h1>✅</h1>
-    <p>Nada a compensar.</p>
+    <header>
+      <figure>✅</figure>
+      <h1>Nada a compensar.</h1>
+    </header>
   </div>
   {% else %}
   <table class="table">
@@ -64,8 +66,10 @@
 
   {% if 0 == history | length %}
   <div class="hero">
-    <h1>🏜️</h1>
-    <p>Nenhum registro encontrado.</p>
+    <header>
+      <figure>🏜️</figure>
+      <h1>Nenhum registro encontrado.</h1>
+    </header>
   </div>
   {% else %}
   <table class="table">

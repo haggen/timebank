@@ -1,5 +1,3 @@
-import "https://cdn.skypack.dev/@hotwired/turbo";
-
 const supportedUnits = [
   {
     pattern: "(([+-]?)\\d+(,\\d+)?)(:|horas|hora|h)",

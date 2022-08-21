@@ -15,16 +15,16 @@
     <link rel="icon" href="/static/icon-32.svg" />
     <link rel="mask-icon" href="/static/icon-32.svg" color="#000" />
     <link rel="apple-touch-icon" href="/static/icon-180.png" />
-    <link href="/static/open-color.css" rel="stylesheet" />
-    <link href="/static/reset.css" rel="stylesheet" />
-    <link href="/static/style.css" rel="stylesheet" />
+    <link href="/static/css/open-color.css" rel="stylesheet" />
+    <link href="/static/css/reset.css" rel="stylesheet" />
+    <link href="/static/css/style.css" rel="stylesheet" />
     <link href="https://fonts.bunny.net" rel="preconnect" />
     <link
       href="https://fonts.bunny.net/css?family=Lato:400,700&display=swap"
       rel="stylesheet"
     />
 
-    <script src="/static/script.js" type="module"></script>
+    <script src="/static/js/script.js" type="module"></script>
   </head>
 
   <body>
@@ -101,24 +101,75 @@
         </h1>
 
         {% if request.user.is_authenticated %}
-        <ul class="menu inline">
-          <li>
-            <a
-              href="{{ request.url_for('new_entry') }}"
-              class="menu-item {{ 'active' if request.url == request.url_for('new_entry') }}"
-            >
-              Registrar
-            </a>
-          </li>
-          <li>
-            <a
-              href="{{ request.url_for('history') }}"
-              class="menu-item {{ 'active' if request.url == request.url_for('history') }}"
-            >
-              Histórico
-            </a>
-          </li>
-        </ul>
+        <paginated-menu
+          data-selected-page="{{ 'management' if management else 'regular' }}"
+        >
+          <ul class="menu inline" data-page="regular">
+            <li>
+              <a
+                href="{{ request.url_for('new_entry') }}"
+                class="menu-item {{ 'active' if request.url == request.url_for('new_entry') }}"
+              >
+                Registrar
+              </a>
+            </li>
+            <li>
+              <a
+                href="{{ request.url_for('history') }}"
+                class="menu-item {{ 'active' if request.url == request.url_for('history') }}"
+              >
+                Histórico
+              </a>
+            </li>
+            {% if request.user.is_manager %}
+            <li>
+              <button
+                type="button"
+                class="menu-item"
+                data-change-page="management"
+              >
+                Gestão →
+              </button>
+            </li>
+            {% endif %}
+          </ul>
+
+          <ul class="menu inline" data-page="management" hidden>
+            <li>
+              <button
+                type="button"
+                class="menu-item"
+                data-change-page="regular"
+              >
+                ← Voltar
+              </button>
+            </li>
+            <li>
+              <a
+                href="{{ request.url_for('root') }}"
+                class="menu-item {{ 'active' if request.url == request.url_for('root') }}"
+              >
+                Visão geral
+              </a>
+            </li>
+            <li>
+              <a
+                href="{{ request.url_for('root') }}"
+                class="menu-item {{ 'active' if request.url == request.url_for('root') }}"
+              >
+                Contas
+              </a>
+            </li>
+            <li>
+              <a
+                href="{{ request.url_for('root') }}"
+                class="menu-item {{ 'active' if request.url == request.url_for('root') }}"
+              >
+                Configuração
+              </a>
+            </li>
+          </ul>
+        </paginated-menu>
 
         <ul class="menu inline">
           <li>

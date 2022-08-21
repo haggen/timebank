@@ -1,22 +1,22 @@
-{% extends "_layout.html" %}
-
-{% block content %}
-  <main class="content">
-    {% if not employees | length %}
-      <div class="hero">
-        <h1>🌵</h1>
-        <p>Nenhum funcionário encontrado.</p>
-      </div>
+{% extends "_layout.html" %} {% block title %}Visão geral — {{ super() }}{%
+  endblock %} {% block content %}
+    {% if not account %}
+      <section class="hero">
+        <header>
+          <figure>👈</figure>
+          <h1>Nenhuma conta selecionada encontrado.</h1>
+        </header>
+      </section>
     {% else %}
-      <div class="stack">
-        <form method="get" class="toolbar">
+      <section class="stack">
+        <form method="get" class="flex">
           <input type="month" name="month" value="{{ selected_date | datetime("%Y-%m") }}" class="input pill" />
           <button type="submit" class="button pill">Atualizar</button>
         </form>
         <table class="table">
           <thead>
             <tr>
-              <th>Funcionário</th>
+              <th>Conta</th>
               <th>Expira no mês selecionado</th>
               <th>Saldo total</th>
             </tr>
@@ -47,7 +47,6 @@
             {% endfor %}
           </tbody>
         </table>
-      </div>
+      </section>
     {% endif %}
-  </main>
 {% endblock %}

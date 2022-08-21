@@ -59,6 +59,10 @@ class Account(Base):
     organization = relationship("Organization", back_populates="accounts")
     entries = relationship("Entry", back_populates="account")
 
+    @property
+    def is_manager(self):
+        return self.role == "manager"
+
 
 class Entry(Base):
     __tablename__ = "entries"
