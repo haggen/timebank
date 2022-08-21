@@ -16,7 +16,7 @@ from starlette.routing import Route, Mount
 from starlette.requests import HTTPConnection, Request
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy.sql.functions import sum
+from sqlalchemy.sql.functions import sum, coalesce
 from database import Session, Organization, Account, Entry
 from google import Google
 from ext.flash import FlashMiddleware
@@ -91,7 +91,7 @@ class OAuthEndpoint(HTTPEndpoint):
     async def get(self, request: Request):
         try:
             google = Google(request=request, redirect_uri=request.url_for(name="oauth"))
-            token = google.fetch_token(
+            google.fetch_token(
                 returning_uri=str(request.url.replace(scheme="https")),
                 state=request.session.pop("state", None),
             )
@@ -100,8 +100,8 @@ class OAuthEndpoint(HTTPEndpoint):
             log.exception(msg="", exc_info=exception)
             raise HTTPException(status_code=401)
 
-        # Save token in session.
-        request.session["token"] = token
+        if not "hd" in userinfo:
+            raise HTTPException(status_code=401)
 
         async with Session() as session:
             async with session.begin():
@@ -112,24 +112,28 @@ class OAuthEndpoint(HTTPEndpoint):
                 )
 
                 if not organization:
-                    session.add(Organization.create(domain=userinfo["hd"]))
+                    organization = Organization(domain=userinfo["hd"])
+                    session.add(organization)
+                    organization.is_new = True
 
                 account = await session.scalar(
-                    select(Account).where(Account.email == userinfo["email"]).limit(1)
+                    select(Account)
+                    .where(
+                        Account.email == userinfo["email"],
+                        Account.organization_id == organization.id,
+                    )
+                    .limit(1)
                 )
 
                 if not account:
-                    session.add(
-                        Account(
-                            organization_id=organization.id,
-                            role="manager"
-                            if organization in session.new
-                            else "employee",
-                            email=userinfo["email"],
-                            name=userinfo["name"],
-                            picture=userinfo["picture"],
-                        )
+                    account = Account(
+                        organization_id=organization.id,
+                        role=("manager" if organization.is_new else "employee"),
+                        email=userinfo["email"],
+                        name=userinfo["name"],
+                        picture=userinfo["picture"],
                     )
+                    session.add(account)
 
                 session.commit()
 
@@ -158,7 +162,7 @@ class EntriesEndpoint(HTTPEndpoint):
     async def get(self, request: Request):
         async with Session() as session:
             balance = await session.scalar(
-                select(sum(Entry.residue).label("balance")).where(
+                select(coalesce(sum(Entry.residue), 0).label("balance")).where(
                     Entry.account_id == request.user.id,
                     Entry.expires_on > datetime.date.today(),
                 )
