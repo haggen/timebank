@@ -15,11 +15,11 @@
       </tr>
       <tr>
         <th>Cadastro</th>
-        <td>{{ request.user.created_at.strftime("%d/%m/%Y") }}</td>
+        <td>{{ request.user.created_at | datetime("%d/%m/%Y") }}</td>
       </tr>
       <tr>
         <th>Saldo</th>
-        <td>{{ balance }}</td>
+        <td>{{ balance | entryvalue }}</td>
       </tr>
     </tbody>
   </table>
@@ -46,14 +46,12 @@
     <tbody>
       {% for entry in expirations %}
       <tr>
-        <td>{{ entry.happened_on.strftime("%d/%m/%Y") }}</td>
+        <td>{{ entry.happened_on | datetime("%d/%m/%Y") }}</td>
         <td class="text {{ 'striked grayed' if entry.is_expired }}">
-          {{ entry.expires_on.strftime("%d/%m/%Y") }}
+          {{ entry.expires_on | datetime("%d/%m/%Y") }}
         </td>
-        <td>{{ "+" if entry.value > 0 }}{{ entry.value }}</td>
-        <td class="text {{ 'negative' if entry.residue > 0}}">
-          {{ "+" if entry.residue > 0 }}{{ entry.residue }}
-        </td>
+        <td>{{ entry.value | entryvalue }}</td>
+        <td>{{ entry.residue | entryvalue }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -82,14 +80,12 @@
     <tbody>
       {% for entry in history %}
       <tr>
-        <td>{{ entry.happened_on.strftime("%d/%m/%Y") }}</td>
+        <td>{{ entry.happened_on | datetime("%d/%m/%Y") }}</td>
         <td class="text {{ 'striked grayed' if entry.is_expired }}">
-          {{ entry.expires_on.strftime("%d/%m/%Y") }}
+          {{ entry.expires_on | datetime("%d/%m/%Y") }}
         </td>
-        <td>{{ "+" if entry.value > 0 }}{{ entry.value }}</td>
-        <td class="text {{ 'negative' if entry.residue > 0}}">
-          {{ "+" if entry.residue > 0 }}{{ entry.residue }}
-        </td>
+        <td>{{ entry.value | entryvalue }}</td>
+        <td>{{ entry.residue | entryvalue }}</td>
       </tr>
       {% endfor %}
     </tbody>

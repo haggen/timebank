@@ -10,7 +10,7 @@
     {% else %}
       <div class="stack">
         <form method="get" class="toolbar">
-          <input type="month" name="month" value="{{ selected_date.strftime("%Y-%m") }}" class="input pill" />
+          <input type="month" name="month" value="{{ selected_date | datetime("%Y-%m") }}" class="input pill" />
           <button type="submit" class="button pill">Atualizar</button>
         </form>
         <table class="table">

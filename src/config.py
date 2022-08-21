@@ -1,7 +1,9 @@
+from math import floor
 from starlette.config import Config
 from starlette.datastructures import Secret
 from starlette.templating import Jinja2Templates
 
+import datetime
 import logging
 
 # Configuration.
@@ -31,6 +33,34 @@ GOOGLE_CLIENT_SECRET = config("GOOGLE_CLIENT_SECRET", cast=Secret)
 
 # Setup Jinja templates.
 templates = Jinja2Templates(directory="templates", auto_reload=DEBUG)
+
+
+def format_entry_value(value: int):
+    if value == 0:
+        return "-"
+
+    result = "+" if value > 0 else "-"
+    value = abs(value)
+
+    h = floor(value / 60)
+    m = value % 60
+
+    if h > 0:
+        result += f"{h} hora{'s' if h != 1 else ''}"
+
+    if m > 0:
+        result += " " if h > 0 else ""
+        result += f"{m} minuto{'s' if m != 1 else ''}"
+
+    return result
+
+
+def format_datetime(value: datetime.datetime | datetime.date, format: str = "%d/%m/%Y"):
+    return value.strftime(format)
+
+
+templates.env.filters["datetime"] = format_datetime
+templates.env.filters["entryvalue"] = format_entry_value
 
 # Configure loggers.
 if DEBUG:

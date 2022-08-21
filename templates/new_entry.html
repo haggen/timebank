@@ -57,7 +57,7 @@ endblock %} {% block content %}
         type="date"
         name="happened_on"
         class="input"
-        value="{{ today.strftime('%Y-%m-%d') }}"
+        value="{{ today | datetime('%Y-%m-%d') }}"
         required
       />
     </label>
