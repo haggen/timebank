@@ -105,37 +105,30 @@ class OAuthEndpoint(HTTPEndpoint):
 
         async with Session() as session:
             async with session.begin():
-                organization = await session.scalar(
-                    select(Organization)
-                    .where(Organization.domain == userinfo["hd"])
-                    .limit(1)
-                )
-
-                if not organization:
-                    organization = Organization(domain=userinfo["hd"])
-                    session.add(organization)
-                    organization.is_new = True
-
                 account = await session.scalar(
-                    select(Account)
-                    .where(
-                        Account.email == userinfo["email"],
-                        Account.organization_id == organization.id,
-                    )
-                    .limit(1)
+                    select(Account).where(Account.email == userinfo["email"]).limit(1)
                 )
 
                 if not account:
                     account = Account(
-                        organization_id=organization.id,
-                        role=("manager" if organization.is_new else "employee"),
                         email=userinfo["email"],
                         name=userinfo["name"],
+                        role="employee",
                         picture=userinfo["picture"],
                     )
-                    session.add(account)
 
-                session.commit()
+                    account.organization = await session.scalar(
+                        select(Organization)
+                        .where(Organization.domain == userinfo["hd"])
+                        .limit(1)
+                    )
+
+                    if not account.organization:
+                        account.role = "manager"
+                        account.organization = Organization(domain=userinfo["hd"])
+
+                    session.add(account)
+                    session.commit()
 
         request.session["email"] = account.email
 
