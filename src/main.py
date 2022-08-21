@@ -54,9 +54,11 @@ class BasicAuthBackend(AuthenticationBackend):
 class RootEndpoint(HTTPEndpoint):
     async def get(self, request: Request):
         if request.user.is_authenticated:
-            return RedirectResponse(url=request.url_for(name="new_entry"))
+            return RedirectResponse(
+                url=request.url_for(name="new_entry"), status_code=303
+            )
 
-        return RedirectResponse(url=request.url_for(name="sign_in"))
+        return RedirectResponse(url=request.url_for(name="sign_in"), status_code=303)
 
 
 class SessionEndpoint(HTTPEndpoint):
@@ -134,7 +136,7 @@ class OAuthEndpoint(HTTPEndpoint):
 
         return RedirectResponse(
             url=request.session.pop("next", request.url_for(name="root")),
-            status_code=302,
+            status_code=303,
         )
 
 
