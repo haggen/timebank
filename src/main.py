@@ -218,11 +218,14 @@ class EntriesEndpoint(HTTPEndpoint):
 
 # Exception handler.
 async def handle_exception(request: Request, exception: HTTPException | Exception):
-    request.session["email"] = ""
+    try:
+        status_code = exception.status_code
+    except AttributeError:
+        status_code = 500
     return config.templates.TemplateResponse(
         "error.html",
-        {"request": request, "status_code": exception.status_code},
-        status_code=exception.status_code,
+        {"request": request, "status_code": status_code},
+        status_code=status_code,
     )
 
 
