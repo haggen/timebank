@@ -2,7 +2,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.requests import Request
 
 
-Request.flash = property(lambda req: req.state.flash, doc="Short lived session data.")
+Request.flash = property(lambda self: self.state.flash, doc="Short lived session data.")
 
 
 class Flash(dict):
