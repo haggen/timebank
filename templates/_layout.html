@@ -27,11 +27,13 @@
   </head>
 
   <body>
-    {% if request.state.debug %}
+    {% if request.app.state.debug %}
     <div id="debug">
       <pre>
         Session: {{ request.session }}
         Flash: {{ request.flash }}
+        User: {{ request.user.__dict__ }}
+        {% if request.user.organization %}Organization: {{ request.user.organization.__dict__ }}{% endif %}
       </pre>
     </div>
     {% endif %} {% with alert = request.flash.alert %} {% if alert %}
