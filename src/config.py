@@ -19,11 +19,11 @@ SECRET_KEY = config("SECRET_KEY", cast=Secret)
 # Database URL, e.g. postgresql://username:password@hostname/database
 DATABASE_URL = config("DATABASE_URL", cast=Secret)
 
-# Appication major version, e.g. 1, 2, etc.
+# Appication version, e.g. v1, v2, etc. but only digits.
 VERSION = config("VERSION", cast=int, default=0)
 
-# Appication revision, i.e. git commit hash, e.g. "a1b2c3d4"
-REVISION = config("REVISION", cast=str, default="-")
+# Appication revision, e.g. hash of latest commit, number of builds, etc.
+REVISION = config("REVISION", cast=str, default="")
 
 # Google API credentials.
 GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", cast=Secret)
