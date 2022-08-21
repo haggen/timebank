@@ -41,10 +41,8 @@ function formatValue(value) {
     return "";
   }
 
-  const absoluteValue = Math.abs(parsedValue);
-
-  const h = Math.floor(absoluteValue / 60);
-  const m = absoluteValue % 60;
+  const h = Math.floor(parsedValue / 60);
+  const m = parsedValue % 60;
 
   const parts = [];
 
@@ -60,6 +58,7 @@ function formatValue(value) {
 
 class EntryForm extends HTMLElement {
   value = 0;
+  type = 1;
 
   connectedCallback() {
     this.valueInput = this.querySelector('input[slot="value-input"]');
@@ -80,9 +79,9 @@ class EntryForm extends HTMLElement {
         return;
       }
       if (e.target.value === "+") {
-        this.value = Math.abs(this.value);
+        this.type = 1;
       } else if (e.target.value === "-") {
-        this.value *= -1;
+        this.type = -1;
       }
       this.updateInputs();
     });
@@ -95,7 +94,7 @@ class EntryForm extends HTMLElement {
       if (isNaN(addedValue)) {
         return;
       }
-      this.value += addedValue * (this.value < 0 ? -1 : 1);
+      this.value += addedValue;
       this.updateInputs();
     });
 
@@ -109,7 +108,9 @@ class EntryForm extends HTMLElement {
     });
 
     this.formattedValueInput.addEventListener("change", (e) => {
-      this.value = parseValue(e.target.value);
+      const parsedValue = parseValue(e.target.value);
+      this.value = Math.abs(parsedValue);
+      this.type *= parsedValue >= 0 ? 1 : -1;
       this.updateInputs();
     });
 
@@ -117,13 +118,13 @@ class EntryForm extends HTMLElement {
   }
 
   updateValueInput() {
-    this.valueInput.value = String(this.value);
+    this.valueInput.value = String(this.value * this.type);
   }
 
   updateFormattedValueInput() {
     this.formattedValueInput.value = formatValue(this.value);
 
-    if (this.value >= 0) {
+    if (this.type > 0) {
       this.flipValueOptionGroup.querySelector(
         'input[value="+"]'
       ).checked = true;
