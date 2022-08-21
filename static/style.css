@@ -4,6 +4,7 @@ body {
 }
 
 html {
+  color: var(--oc-gray-9);
   font-family: Lato, system-ui, sans-serif;
   scrollbar-gutter: stable;
 }
@@ -26,10 +27,10 @@ p {
 .alert {
   align-items: start;
   animation: slide-in 0.25s ease-in-out forwards 0.125s;
-  background-color: ivory;
+  background-color: var(--oc-yellow-0);
   border-radius: 0.5rem;
   border: 1px solid currentColor;
-  color: #660;
+  color: var(--oc-yellow-9);
   display: flex;
   gap: 1rem;
   justify-content: space-between;
@@ -44,8 +45,8 @@ p {
 }
 
 .alert.positive {
-  color: darkgreen;
-  background-color: mintcream;
+  color: var(--oc-green-9);
+  background-color: var(--oc-green-0);
 }
 
 /* --- */
@@ -57,11 +58,11 @@ p {
 }
 
 .menu-item:not(.active):is(a, button):is(:focus, :hover) {
-  color: dimgray;
+  color: var(--oc-gray-6);
 }
 
 .menu-item.active {
-  color: royalblue;
+  color: var(--oc-indigo-9);
 }
 
 /* --- */
@@ -114,7 +115,7 @@ p {
 }
 
 .brand a:is(:focus, :hover) {
-  color: dimgray;
+  color: var(--oc-gray-6);
 }
 
 /* --- */
@@ -144,9 +145,9 @@ p {
 
 .hero {
   align-items: center;
-  background: whitesmoke linear-gradient(whitesmoke, white);
+  background: var(--oc-gray-0) linear-gradient(var(--oc-gray-0), white);
   border-radius: 1rem;
-  color: dimgray;
+  color: var(--oc-gray-6);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -156,8 +157,8 @@ p {
 
 .hero h1 {
   font-size: 3rem;
+  font-weight: bolder;
   line-height: 1.25;
-  font-weight: 900;
 }
 
 .hero p {
@@ -196,11 +197,11 @@ p {
 }
 
 .table thead th {
-  border-bottom: 1px solid dimgray;
+  border-bottom: 1px solid var(--oc-gray-6);
 }
 
 .table tbody tr:nth-child(even) {
-  background-color: whitesmoke;
+  background-color: var(--oc-gray-0);
 }
 
 .table tbody tr:nth-child(even) :is(td, th):first-child {
@@ -245,12 +246,12 @@ p {
 
 .input {
   background-color: white;
-  border: 1px solid dimgray;
+  border: 1px solid var(--oc-gray-6);
   padding-inline: 0.5rem;
 }
 
 .input:invalid {
-  border-color: darkred;
+  border-color: var(--oc-red-9);
 }
 
 .button {
@@ -259,12 +260,12 @@ p {
 }
 
 .button.primary {
-  background-color: royalblue;
+  background-color: var(--oc-indigo-9);
   color: white;
 }
 
 .button.primary:is(:focus, :hover) {
-  background-color: cornflowerblue;
+  background-color: var(--oc-indigo-6);
 }
 
 .button.secondary {
@@ -273,7 +274,7 @@ p {
 }
 
 .button.secondary:is(:focus, :hover) {
-  background-color: whitesmoke;
+  background-color: var(--oc-gray-0);
 }
 
 /* --- */
@@ -288,14 +289,14 @@ p {
 }
 
 .radio:is(:focus, :hover) {
-  background-color: whitesmoke;
+  background-color: var(--oc-gray-0);
 }
 
 .radio:checked {
   background-image: radial-gradient(
     circle at center,
-    royalblue,
-    royalblue 0.25rem,
+    var(--oc-indigo-9),
+    var(--oc-indigo-9) 0.25rem,
     white 0.25rem
   );
   background-repeat: no-repeat;
@@ -319,15 +320,15 @@ p {
 /* --- */
 
 .text.positive {
-  color: darkgreen;
+  color: var(--oc-green-9);
 }
 
 .text.negative {
-  color: darkred;
+  color: var(--oc-red-9);
 }
 
 .text.grayed {
-  color: dimgray;
+  color: var(--oc-gray-6);
 }
 
 .text.underlined {
@@ -341,8 +342,8 @@ p {
 /* --- */
 
 #debug {
-  background-color: darkgreen;
-  color: ivory;
+  background-color: var(--oc-green-9);
+  color: var(--oc-yellow-0);
   padding: 0.75rem;
   position: absolute;
   width: 100%;
