@@ -10,8 +10,16 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import declarative_base, relationship, selectinload, sessionmaker
+from sqlalchemy.orm import (
+    declarative_base,
+    relationship,
+    selectinload,
+    sessionmaker,
+    UOWTransaction,
+    Session as SyncSession,
+)
 from sqlalchemy.future import select
+from sqlalchemy.event import listens_for
 from datetime import datetime
 
 import config
@@ -66,51 +74,38 @@ class Entry(Base):
     account = relationship("Account", back_populates="entries")
 
     @classmethod
-    async def create(self, session: AsyncSession, **values):
-        entry = Entry(**values)
-        session.add(entry)
+    def recalculate_residue(self, session: Session, entry: "Entry"):
+        if entry.residue == 0:
+            return
 
-        entries = (
-            await session.scalars(
-                select(Entry)
-                .where(
-                    Entry.account_id == entry.account_id,
-                    Entry.expires_on > entry.happened_on,
-                    Entry.residue != 0,
-                )
-                .order_by(Entry.happened_on, Entry.id)
+        involved_entries = session.scalars(
+            select(Entry)
+            .where(
+                Entry.account_id == entry.account_id,
+                Entry.expires_on > entry.happened_on,
+                Entry.residue < 0 if entry.residue > 0 else Entry.residue > 0,
             )
-        ).all()
+            .order_by(Entry.happened_on, Entry.created_at)
+        )
 
-        for a in entries:
-            # If there's no residue, skip.
-            if a.residue == 0:
-                continue
+        for ie in involved_entries:
+            residue = ie.residue + entry.residue
 
-            # For each entry a we're checking if entry b should've changed it.
-            for b in entries:
-                # If they're the same entry, skip.
-                if a == b:
-                    continue
+            if (residue > 0) == (ie.residue > 0):
+                ie.residue = residue
+                entry.residue = 0
+                break
+            else:
+                ie.residue = 0
+                entry.residue = residue
 
-                # If entry b happened after entry a expires, then we're done with entry a.
-                if a.expires_on < b.happened_on:
-                    break
 
-                # If they're the same type, skip.
-                if (a.residue > 0) == (b.residue > 0):
-                    continue
+@listens_for(SyncSession, "before_flush")
+def recalculate_residue(session: Session, flush_context: UOWTransaction, instances):
+    for instance in session.new:
+        if isinstance(instance, Entry):
+            Entry.recalculate_residue(session, instance)
 
-                # Calculate new residue.
-                residue = a.residue + b.residue
-
-                # If new residue has the same sign as entry a, then entry a must still has residue left.
-                if residue > 0:
-                    b.residue = 0
-                    a.residue = residue
-                # Otherwise entry b still has residue left.
-                else:
-                    b.residue = residue
-                    a.residue = 0
-
-        session.commit()
+    for instance in session.dirty:
+        if isinstance(instance, Entry):
+            Entry.recalculate_residue(session, instance)

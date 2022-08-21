@@ -179,14 +179,15 @@ class EntriesEndpoint(HTTPEndpoint):
         value = int(form["value"])
         async with Session() as session:
             async with session.begin():
-                await Entry.create(
-                    session,
-                    account_id=request.user.id,
-                    happened_on=happened_on,
-                    expires_on=expires_on,
-                    value=value,
-                    residue=value,
-                    multiplier=1.0,
+                session.add(
+                    Entry(
+                        account_id=request.user.id,
+                        happened_on=happened_on,
+                        expires_on=expires_on,
+                        value=value,
+                        residue=value,
+                        multiplier=1.0,
+                    )
                 )
                 await session.commit()
         request.flash["alert"] = {"message": "✅ Registro criado.", "type": "positive"}
