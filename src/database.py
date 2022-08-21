@@ -20,7 +20,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.future import select
 from sqlalchemy.event import listens_for
-from datetime import datetime
+import datetime
 
 import config
 
@@ -39,7 +39,7 @@ class Organization(Base):
     }
 
     id = Column(Integer, primary_key=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now)
     domain = Column(Text, nullable=False, unique=True, index=True)
     settings = Column(JSONB, nullable=False, default=default_settings)
     accounts = relationship("Account", back_populates="organization")
@@ -50,7 +50,7 @@ class Account(Base):
 
     id = Column(Integer, primary_key=True)
     organization_id = Column(None, ForeignKey("organizations.id"))
-    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now)
     active = Column(Boolean, nullable=False, default=True)
     role = Column(Text, nullable=False, default="employee")
     email = Column(Text, nullable=False, unique=True, index=True)
@@ -65,13 +65,17 @@ class Entry(Base):
 
     id = Column(Integer, primary_key=True)
     account_id = Column(None, ForeignKey("accounts.id"))
-    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now)
     happened_on = Column(Date, nullable=False, index=True)
     expires_on = Column(Date, nullable=False, index=True)
     value = Column(Integer, nullable=False)
     residue = Column(Integer, nullable=False)
     multiplier = Column(Float, nullable=False)
     account = relationship("Account", back_populates="entries")
+
+    @property
+    def is_expired(self):
+        return self.expires_on < datetime.date.today()
 
     @classmethod
     def recalculate_residue(self, session: Session, entry: "Entry"):
