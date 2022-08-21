@@ -16,6 +16,7 @@ from starlette.routing import Route, Mount
 from starlette.requests import HTTPConnection, Request
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+from sqlalchemy.sql.functions import sum
 from database import Session, Organization, Account, Entry
 from google import Google
 from ext.flash import FlashMiddleware
@@ -156,16 +157,33 @@ class EntriesEndpoint(HTTPEndpoint):
     @requires("authenticated", redirect="sign_in")
     async def get(self, request: Request):
         async with Session() as session:
-            entries = await session.scalars(
+            balance = await session.scalar(
+                select(sum(Entry.residue).label("balance")).where(
+                    Entry.account_id == request.user.id,
+                    Entry.expires_on > datetime.date.today(),
+                )
+            )
+            history = await session.scalars(
                 select(Entry)
                 .where(Entry.account_id == request.user.id)
-                .order_by(Entry.happened_on.desc(), Entry.id.desc())
+                .order_by(Entry.happened_on.desc(), Entry.created_at.desc())
+            )
+            expirations = await session.scalars(
+                select(Entry)
+                .where(
+                    Entry.account_id == request.user.id,
+                    Entry.residue > 0,
+                    Entry.expires_on > datetime.date.today(),
+                )
+                .order_by(Entry.expires_on, Entry.created_at)
             )
         return config.templates.TemplateResponse(
             "history.html",
             {
                 "request": request,
-                "entries": entries.all(),
+                "balance": balance,
+                "history": history.all(),
+                "expirations": expirations.all(),
             },
         )
 

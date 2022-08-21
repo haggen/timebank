@@ -19,16 +19,16 @@
       </tr>
       <tr>
         <th>Saldo</th>
-        <td>-</td>
+        <td>{{ balance }}</td>
       </tr>
     </tbody>
   </table>
 </article>
 
 <article class="stack">
-  <h1 class="heading two">Histórico</h1>
+  <h1 class="heading two">Próx. vencimentos</h1>
 
-  {% if 0 == entries | length %}
+  {% if 0 == expirations | length %}
   <div class="hero">
     <h1>🏜️</h1>
     <p>Nenhum registro encontrado.</p>
@@ -44,7 +44,43 @@
       </tr>
     </thead>
     <tbody>
-      {% for entry in entries %}
+      {% for entry in expirations %}
+      <tr>
+        <td>{{ entry.happened_on.strftime("%d/%m/%Y") }}</td>
+        <td class="text {{ 'striked grayed' if entry.is_expired }}">
+          {{ entry.expires_on.strftime("%d/%m/%Y") }}
+        </td>
+        <td>{{ "+" if entry.value > 0 }}{{ entry.value }}</td>
+        <td class="text {{ 'negative' if entry.residue > 0}}">
+          {{ "+" if entry.residue > 0 }}{{ entry.residue }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</article>
+
+<article class="stack">
+  <h1 class="heading two">Histórico</h1>
+
+  {% if 0 == history | length %}
+  <div class="hero">
+    <h1>🏜️</h1>
+    <p>Nenhum registro encontrado.</p>
+  </div>
+  {% else %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Vencimento</th>
+        <th>Valor</th>
+        <th>Restante</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in history %}
       <tr>
         <td>{{ entry.happened_on.strftime("%d/%m/%Y") }}</td>
         <td class="text {{ 'striked grayed' if entry.is_expired }}">
