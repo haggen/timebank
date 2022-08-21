@@ -176,7 +176,7 @@ class EntriesEndpoint(HTTPEndpoint):
                 select(Entry)
                 .where(
                     Entry.account_id == request.user.id,
-                    Entry.residue > 0,
+                    Entry.residue != 0,
                     Entry.expires_on > datetime.date.today(),
                 )
                 .order_by(Entry.expires_on, Entry.created_at)
