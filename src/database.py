@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import (
     declarative_base,
     relationship,
-    selectinload,
     sessionmaker,
     UOWTransaction,
     Session as SyncSession,
@@ -56,6 +55,7 @@ class Account(Base):
     email = Column(Text, nullable=False, unique=True, index=True)
     name = Column(Text, nullable=False)
     picture = Column(Text)
+
     organization = relationship("Organization", back_populates="accounts")
     entries = relationship("Entry", back_populates="account")
 
@@ -90,6 +90,7 @@ class Entry(Base):
             select(Entry)
             .where(
                 Entry.account_id == entry.account_id,
+                Entry.happened_on < entry.expires_on,
                 Entry.expires_on > entry.happened_on,
                 Entry.residue < 0 if entry.residue > 0 else Entry.residue > 0,
             )
