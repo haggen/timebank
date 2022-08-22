@@ -141,13 +141,13 @@
                 class="menu-item"
                 data-change-page="regular"
               >
-                ← Voltar
+                ← Conta
               </button>
             </li>
             <li>
               <a
-                href="{{ request.url_for('root') }}"
-                class="menu-item {{ 'active' if request.url == request.url_for('root') }}"
+                href="{{ request.url_for('summary') }}"
+                class="menu-item {{ 'active' if request.url | startswith(request.url_for('summary')) }}"
               >
                 Visão geral
               </a>
@@ -192,7 +192,7 @@
       <footer class="footer">
         <ul class="menu inline">
           <li>
-            <span class="menu-item">© 2022 Jogajunto</span>
+            <span class="menu-item">© 2022 Corenzan</span>
           </li>
           <li>
             <a

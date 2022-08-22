@@ -59,8 +59,13 @@ def format_datetime(value: datetime.datetime | datetime.date, format: str = "%d/
     return value.strftime(format)
 
 
+def format_startswith(value: any, prefix: str):
+    return str(value).startswith(prefix)
+
+
 templates.env.filters["datetime"] = format_datetime
 templates.env.filters["entryvalue"] = format_entry_value
+templates.env.filters["startswith"] = format_startswith
 
 # Configure loggers.
 if DEBUG:

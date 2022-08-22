@@ -1,52 +1,28 @@
 {% extends "_layout.html" %} {% block title %}Visão geral — {{ super() }}{%
-  endblock %} {% block content %}
-    {% if not account %}
-      <section class="hero">
-        <header>
-          <figure>👈</figure>
-          <h1>Nenhuma conta selecionada encontrado.</h1>
-        </header>
-      </section>
-    {% else %}
-      <section class="stack">
-        <form method="get" class="flex">
-          <input type="month" name="month" value="{{ selected_date | datetime("%Y-%m") }}" class="input pill" />
-          <button type="submit" class="button pill">Atualizar</button>
-        </form>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Conta</th>
-              <th>Expira no mês selecionado</th>
-              <th>Saldo total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for entry in entries %}
-              <tr>
-                <th>
-                  <a href="{{ request.url_for("employee", id=entry.employee_id) }}" class="text underline">
-                    {{ entry.name }}
-                  </a>
-                </th>
-                {% if entry.expiring_balance %}
-                  <td class="text {{ "negative" if entry.expiring_balance > 0 }}">
-                    {{ "+" if entry.expiring_balance > 0 }}{{ entry.expiring_balance }}
-                  </td>
-                {% else %}
-                  <td>-</td>
-                {% endif %}
-                {% if entry.balance %}
-                  <td class="text {{ "negative" if entry.balance > 0 }}">
-                    {{ "+" if entry.balance > 0 }}{{ entry.balance }}
-                  </td>
-                {% else %}
-                  <td>-</td>
-                {% endif %}
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </section>
-    {% endif %}
+endblock %} {% block content %}
+<div class="stack">
+  <form method="get" class="flex" style="gap: 0.5rem">
+    <input type="month" name="month" value="{{ selected_interval[0] |
+    datetime("%Y-%m") }}" class="input pill" />
+    <button type="submit" class="button primary pill">Atualizar</button>
+  </form>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Conta</th>
+        <th>Vence em {{ selected_interval[0] | datetime("%m/%Y") }}</th>
+        <th>Saldo total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in summary %}
+      <tr>
+        <th>{{ item.name }}</th>
+        <td>{{ item.selected_interval_balance | entryvalue }}</td>
+        <td>{{ item.today_balance | entryvalue }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
