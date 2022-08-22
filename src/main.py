@@ -35,12 +35,13 @@ class BasicAuthBackend(AuthenticationBackend):
             return AuthCredentials(), UnauthenticatedUser()
 
         async with Session() as session:
-            account = await session.scalar(
-                select(Account)
-                .options(selectinload(Account.organization))
-                .where(Account.email == conn.session["email"])
-                .limit(1)
-            )
+            async with session.begin():
+                account = await session.scalar(
+                    select(Account)
+                    .options(selectinload(Account.organization))
+                    .where(Account.email == conn.session["email"])
+                    .limit(1)
+                )
 
         if not account:
             return AuthCredentials(), UnauthenticatedUser()
@@ -135,7 +136,7 @@ class OAuthEndpoint(HTTPEndpoint):
         request.session["email"] = account.email
 
         return RedirectResponse(
-            url=request.session.pop("next", request.url_for(name="root")),
+            url=request.session.pop("next", request.url_for(name="new_entry")),
             status_code=303,
         )
 
@@ -156,26 +157,27 @@ class EntriesEndpoint(HTTPEndpoint):
     @requires("authenticated", redirect="sign_in")
     async def get(self, request: Request):
         async with Session() as session:
-            balance = await session.scalar(
-                select(coalesce(sum(Entry.residue), 0).label("balance")).where(
-                    Entry.account_id == request.user.id,
-                    Entry.expires_on > datetime.date.today(),
+            async with session.begin():
+                balance = await session.scalar(
+                    select(coalesce(sum(Entry.residue), 0).label("balance")).where(
+                        Entry.account_id == request.user.id,
+                        Entry.expires_on > datetime.date.today(),
+                    )
                 )
-            )
-            history = await session.scalars(
-                select(Entry)
-                .where(Entry.account_id == request.user.id)
-                .order_by(Entry.happened_on.desc(), Entry.created_at.desc())
-            )
-            expirations = await session.scalars(
-                select(Entry)
-                .where(
-                    Entry.account_id == request.user.id,
-                    Entry.residue != 0,
-                    Entry.expires_on > datetime.date.today(),
+                history = await session.scalars(
+                    select(Entry)
+                    .where(Entry.account_id == request.user.id)
+                    .order_by(Entry.happened_on.desc(), Entry.created_at.desc())
                 )
-                .order_by(Entry.expires_on, Entry.created_at)
-            )
+                expirations = await session.scalars(
+                    select(Entry)
+                    .where(
+                        Entry.account_id == request.user.id,
+                        Entry.residue != 0,
+                        Entry.expires_on > datetime.date.today(),
+                    )
+                    .order_by(Entry.expires_on, Entry.created_at)
+                )
         return config.templates.TemplateResponse(
             "history.html",
             {
@@ -211,6 +213,59 @@ class EntriesEndpoint(HTTPEndpoint):
         return RedirectResponse(url=request.url_for(name="new_entry"), status_code=303)
 
 
+class SummaryEndpoint(HTTPEndpoint):
+    def get_selected_inteval(self, value: str):
+        try:
+            a = datetime.date.fromisoformat(f"{value}-01")
+        except ValueError:
+            a = datetime.date.today().replace(day=1)
+
+        b = a.replace(month=a.month + 1 if a.month < 12 else 1)
+
+        return (a, b)
+
+    @requires(["authenticated", "manager"], redirect="sign_in")
+    async def get(self, request: Request):
+        selected_interval = self.get_selected_inteval(request.query_params.get("month"))
+        async with Session() as session:
+            async with session.begin():
+                # accounts = await session.scalars(
+                #     select(Account)
+                #     .where(Account.organization_id == request.user.organization.id)
+                #     .order_by(Account.active.desc(), Account.name)
+                # )
+                summary = await session.execute(
+                    select(
+                        Account.id,
+                        Account.name,
+                        coalesce(
+                            sum(Entry.residue).filter(
+                                Entry.expires_on > datetime.date.today()
+                            ),
+                            0,
+                        ).label("today_balance"),
+                        coalesce(
+                            sum(Entry.residue).filter(
+                                Entry.expires_on.between(*selected_interval)
+                            ),
+                            0,
+                        ).label("selected_interval_balance"),
+                    )
+                    .outerjoin(Entry)
+                    .order_by(Account.name, Account.created_at)
+                    .group_by(Account.id)
+                )
+        return config.templates.TemplateResponse(
+            "summary.html",
+            {
+                "request": request,
+                "management": True,
+                "summary": summary.all(),
+                "selected_interval": selected_interval,
+            },
+        )
+
+
 # Exception handler.
 async def handle_exception(request: Request, exception: HTTPException | Exception):
     try:
@@ -236,6 +291,7 @@ routes = [
     Route("/session", SessionEndpoint, methods=["DELETE"], name="session"),
     Route("/entries/new", NewEntryEndpoint, methods=["GET"], name="new_entry"),
     Route("/history", EntriesEndpoint, methods=["GET", "POST"], name="history"),
+    Route("/summary", SummaryEndpoint, methods=["GET"], name="summary"),
 ]
 
 # Create Starlette application.
