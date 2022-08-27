@@ -102,7 +102,7 @@
 
         {% if request.user.is_authenticated %}
         <paginated-menu
-          data-selected-page="{{ 'management' if management else 'regular' }}"
+          data-selected-page="{{ 'management' if is_management else 'regular' }}"
         >
           <ul class="menu inline" data-page="regular">
             <li>
@@ -115,8 +115,8 @@
             </li>
             <li>
               <a
-                href="{{ request.url_for('history') }}"
-                class="menu-item {{ 'active' if request.url == request.url_for('history') }}"
+                href="{{ request.url_for('account') }}"
+                class="menu-item {{ 'active' if request.url == request.url_for('account') }}"
               >
                 Histórico
               </a>
@@ -154,8 +154,8 @@
             </li>
             <li>
               <a
-                href="{{ request.url_for('root') }}"
-                class="menu-item {{ 'active' if request.url == request.url_for('root') }}"
+                href="{{ request.url_for('accounts') }}"
+                class="menu-item {{ 'active' if request.url | startswith(request.url_for('accounts')) }}"
               >
                 Contas
               </a>
@@ -173,7 +173,7 @@
 
         <ul class="menu inline">
           <li>
-            <span class="menu-item">{{ request.user.display_name }}</span>
+            <span class="menu-item">{{ request.user.name | displayname }}</span>
           </li>
           <li>
             <a

@@ -1,0 +1,14 @@
+{% extends "_layout.html" %} {% block title %}Visão geral — {{ super() }}{%
+endblock %} {% block content %}
+<div class="columns">
+  {% include "_accounts_nav.html" %}
+  <div style="grid-column: span 3">
+    <div class="hero">
+      <header>
+        <figure>👈</figure>
+        <h1>Nenhuma conta selecionada.</h1>
+      </header>
+    </div>
+  </div>
+</div>
+{% endblock %}

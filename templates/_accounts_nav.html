@@ -1,0 +1,13 @@
+<nav>
+  <ul class="menu">
+    {% for a in accounts %}
+    <li>
+      <a
+        href="{{ request.url_for('account', id=a.id) }}"
+        class="menu-item {{ 'active' if account is defined and a.id == account.id }} {{ 'text striked' if not a.active }}"
+        >{{ a.name | displayname }}</a
+      >
+    </li>
+    {% endfor %}
+  </ul>
+</nav>

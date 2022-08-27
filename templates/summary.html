@@ -2,24 +2,30 @@
 endblock %} {% block content %}
 <div class="stack">
   <form method="get" class="flex" style="gap: 0.5rem">
-    <input type="month" name="month" value="{{ selected_interval[0] |
-    datetime("%Y-%m") }}" class="input pill" />
+    <input type="month" name="month" value="{{ period[0] | datetime("%Y-%m") }}"
+    class="input pill" />
     <button type="submit" class="button primary pill">Atualizar</button>
   </form>
   <table class="table">
     <thead>
       <tr>
         <th>Conta</th>
-        <th>Vence em {{ selected_interval[0] | datetime("%m/%Y") }}</th>
+        <th>Vence em {{ period[0] | datetime("%m/%Y") }}</th>
         <th>Saldo total</th>
       </tr>
     </thead>
     <tbody>
       {% for item in summary %}
       <tr>
-        <th>{{ item.name }}</th>
-        <td>{{ item.selected_interval_balance | entryvalue }}</td>
-        <td>{{ item.today_balance | entryvalue }}</td>
+        <td>
+          <a
+            href="{{ request.url_for('account', id=item.id) }}"
+            class="text linked"
+            >{{ item.name | displayname }}</a
+          >
+        </td>
+        <td>{{ item.expiring_balance | entryvalue }}</td>
+        <td>{{ item.balance | entryvalue }}</td>
       </tr>
       {% endfor %}
     </tbody>

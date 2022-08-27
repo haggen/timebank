@@ -1,0 +1,106 @@
+{% extends "_layout.html" %} {% block title %}Visão geral — {{ super() }}{%
+endblock %} {% block content %}
+<div class="columns">
+  {% if is_management %} {% include "_accounts_nav.html" %} {% endif %}
+  <div style="grid-column: span 3">
+    <div class="stack" style="gap: 3rem">
+      <section class="stack">
+        <h1 class="heading two">Detalhes</h1>
+
+        <table class="table">
+          <tbody>
+            <tr>
+              <th>Cadastro</th>
+              <td>{{ account.created_at | datetime("%d/%m/%Y") }}</td>
+            </tr>
+            <tr>
+              <th>Nome</th>
+              <td>{{ account.name }}</td>
+            </tr>
+            <tr>
+              <th>E-mail</th>
+              <td>{{ account.email }}</td>
+            </tr>
+            <tr>
+              <th>Saldo</th>
+              <td>{{ account.balance | entryvalue }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="stack">
+        <h1 class="heading two">Próximos vencimentos</h1>
+
+        {% if entries_by_expiration %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Vencimento</th>
+              <th>Valor</th>
+              <th>Restante</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in entries_by_expiration %}
+            <tr>
+              <td>{{ entry.happened_on | datetime("%d/%m/%Y") }}</td>
+              <td class="text {{ 'striked grayed' if entry.is_expired }}">
+                {{ entry.expires_on | datetime("%d/%m/%Y") }}
+              </td>
+              <td>{{ entry.value | entryvalue }}</td>
+              <td>{{ entry.residue | entryvalue }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="hero">
+          <header>
+            <figure>✅</figure>
+            <h1>Nada a compensar.</h1>
+          </header>
+        </div>
+        {% endif %}
+      </section>
+
+      <section class="stack">
+        <h1 class="heading two">Histórico</h1>
+
+        {% if entries_by_date %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Vencimento</th>
+              <th>Valor</th>
+              <th>Restante</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in entries_by_date %}
+            <tr>
+              <td>{{ entry.happened_on | datetime("%d/%m/%Y") }}</td>
+              <td class="text {{ 'striked grayed' if entry.is_expired }}">
+                {{ entry.expires_on | datetime("%d/%m/%Y") }}
+              </td>
+              <td>{{ entry.value | entryvalue }}</td>
+              <td>{{ entry.residue | entryvalue }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="hero">
+          <header>
+            <figure>🏜️</figure>
+            <h1>Nenhum registro encontrado.</h1>
+          </header>
+        </div>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

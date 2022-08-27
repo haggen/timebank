@@ -4,9 +4,8 @@ body {
 }
 
 html {
-  color: var(--oc-gray-9);
-  font-family: Lato, system-ui, sans-serif;
-  font-size: 18px;
+  color: var(--oc-gray-8);
+  font-family: system-ui, sans-serif;
   scrollbar-gutter: stable;
 }
 
@@ -21,7 +20,7 @@ p {
   background-color: var(--oc-yellow-0);
   border-radius: 0.5rem;
   border: 1px solid currentColor;
-  color: var(--oc-yellow-9);
+  color: var(--oc-yellow-8);
   display: flex;
   gap: 1rem;
   justify-content: space-between;
@@ -35,7 +34,7 @@ p {
 }
 
 .alert.positive {
-  color: var(--oc-green-9);
+  color: var(--oc-green-8);
   background-color: var(--oc-green-0);
 }
 
@@ -52,7 +51,7 @@ p {
 }
 
 .menu-item.active {
-  color: var(--oc-indigo-9);
+  color: var(--oc-indigo-8);
 }
 
 /* --- */
@@ -202,7 +201,7 @@ p {
 }
 
 .table thead th {
-  border-bottom: 1px solid var(--oc-gray-6);
+  border-bottom: 1px solid var(--oc-gray-2);
 }
 
 .table tbody tr:nth-child(even) {
@@ -256,7 +255,7 @@ p {
 }
 
 .input:invalid {
-  border-color: var(--oc-red-9);
+  border-color: var(--oc-red-8);
 }
 
 .button {
@@ -265,7 +264,7 @@ p {
 }
 
 .button.primary {
-  background-color: var(--oc-indigo-9);
+  background-color: var(--oc-indigo-8);
   color: white;
 }
 
@@ -300,8 +299,8 @@ p {
 .radio:checked {
   background-image: radial-gradient(
     circle at center,
-    var(--oc-indigo-9),
-    var(--oc-indigo-9) 0.25rem,
+    var(--oc-indigo-8),
+    var(--oc-indigo-8) 0.25rem,
     white 0.25rem
   );
   background-repeat: no-repeat;
@@ -325,11 +324,11 @@ p {
 /* --- */
 
 .text.positive {
-  color: var(--oc-green-9);
+  color: var(--oc-green-8);
 }
 
 .text.negative {
-  color: var(--oc-red-9);
+  color: var(--oc-red-8);
 }
 
 .text.grayed {
@@ -340,6 +339,19 @@ p {
   text-decoration: underline;
 }
 
+.text.linked {
+  background: linear-gradient(
+    0,
+    var(--oc-yellow-0) 0.5rem,
+    transparent 0.25rem
+  );
+}
+
+.text.linked:focus,
+.text.linked:hover {
+  color: var(--oc-gray-6);
+}
+
 .text.striked {
   text-decoration: line-through;
 }
@@ -347,7 +359,7 @@ p {
 /* --- */
 
 #debug {
-  background-color: var(--oc-green-9);
+  background-color: var(--oc-green-8);
   color: var(--oc-yellow-0);
   padding: 0.75rem;
   position: absolute;

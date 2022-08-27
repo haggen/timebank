@@ -63,9 +63,17 @@ def format_startswith(value: any, prefix: str):
     return str(value).startswith(prefix)
 
 
+def format_display_name(value: str):
+    parts = value.split(" ")
+    if len(parts) == 1:
+        return parts[0]
+    return f"{parts[0]} {parts[-1][0]}."
+
+
 templates.env.filters["datetime"] = format_datetime
 templates.env.filters["entryvalue"] = format_entry_value
 templates.env.filters["startswith"] = format_startswith
+templates.env.filters["displayname"] = format_display_name
 
 # Configure loggers.
 if DEBUG:

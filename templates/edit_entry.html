@@ -3,7 +3,8 @@ endblock %} {% block content %}
 <entry-form>
   <form
     method="post"
-    action="{{ request.url_for('entries') }}"
+    action="{{ request.url_for('history') }}"
+    enctype="multipart/form-data"
     class="stack"
     style="gap: 3rem"
   >

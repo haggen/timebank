@@ -1,8 +1,8 @@
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
-    requires,
     UnauthenticatedUser,
+    requires,
 )
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -14,16 +14,19 @@ from starlette.endpoints import HTTPEndpoint
 from starlette.exceptions import HTTPException
 from starlette.routing import Route, Mount
 from starlette.requests import HTTPConnection, Request
+
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
-from sqlalchemy.sql.functions import sum, coalesce
-from database import Session, Organization, Account, Entry
+from sqlalchemy import orm, func
+
+from database import DatabaseMiddleware, Session, Organization, Account, Entry
+
 from google import Google
+
 from ext.flash import FlashMiddleware
 
-import datetime
-import logging
 import config
+import logging
+import datetime
 
 # Logger instance.
 log = logging.getLogger("starlette")
@@ -35,19 +38,15 @@ class BasicAuthBackend(AuthenticationBackend):
             return AuthCredentials(), UnauthenticatedUser()
 
         async with Session() as session:
-            async with session.begin():
-                account = await session.scalar(
-                    select(Account)
-                    .options(selectinload(Account.organization))
-                    .where(Account.email == conn.session["email"])
-                    .limit(1)
-                )
+            account = await session.scalar(
+                select(Account)
+                .options(orm.joinedload(Account.organization))
+                .where(Account.email == conn.session["email"])
+                .limit(1)
+            )
 
         if not account:
             return AuthCredentials(), UnauthenticatedUser()
-
-        account.is_authenticated = True
-        account.display_name = account.name
 
         return AuthCredentials(["authenticated", account.role]), account
 
@@ -94,7 +93,7 @@ class OAuthEndpoint(HTTPEndpoint):
     async def get(self, request: Request):
         try:
             google = Google(request=request, redirect_uri=request.url_for(name="oauth"))
-            google.fetch_token(
+            token = google.fetch_token(
                 returning_uri=str(request.url.replace(scheme="https")),
                 state=request.session.pop("state", None),
             )
@@ -106,33 +105,32 @@ class OAuthEndpoint(HTTPEndpoint):
         if not "hd" in userinfo:
             raise HTTPException(status_code=401)
 
-        async with Session() as session:
-            async with session.begin():
-                account = await session.scalar(
-                    select(Account).where(Account.email == userinfo["email"]).limit(1)
-                )
+        account = await request.db.scalar(
+            select(Account.email).where(Account.email == userinfo["email"]).limit(1)
+        )
 
-                if not account:
-                    account = Account(
-                        email=userinfo["email"],
-                        name=userinfo["name"],
-                        role="employee",
-                        picture=userinfo["picture"],
-                    )
+        if not account:
+            account = Account(
+                email=userinfo["email"],
+                name=userinfo["name"],
+                role="employee",
+                picture=userinfo["picture"],
+            )
 
-                    account.organization = await session.scalar(
-                        select(Organization)
-                        .where(Organization.domain == userinfo["hd"])
-                        .limit(1)
-                    )
+            account.organization = await request.db.scalar(
+                select(Organization)
+                .where(Organization.domain == userinfo["hd"])
+                .limit(1)
+            )
 
-                    if not account.organization:
-                        account.role = "manager"
-                        account.organization = Organization(domain=userinfo["hd"])
+            if not account.organization:
+                account.role = "manager"
+                account.organization = Organization(domain=userinfo["hd"])
 
-                    session.add(account)
-                    session.commit()
+            request.db.add(account)
+            await request.db.commit()
 
+        request.session["token"] = token
         request.session["email"] = account.email
 
         return RedirectResponse(
@@ -155,66 +153,32 @@ class NewEntryEndpoint(HTTPEndpoint):
 
 class EntriesEndpoint(HTTPEndpoint):
     @requires("authenticated", redirect="sign_in")
-    async def get(self, request: Request):
-        async with Session() as session:
-            async with session.begin():
-                balance = await session.scalar(
-                    select(coalesce(sum(Entry.residue), 0).label("balance")).where(
-                        Entry.account_id == request.user.id,
-                        Entry.expires_on > datetime.date.today(),
-                    )
-                )
-                history = await session.scalars(
-                    select(Entry)
-                    .where(Entry.account_id == request.user.id)
-                    .order_by(Entry.happened_on.desc(), Entry.created_at.desc())
-                )
-                expirations = await session.scalars(
-                    select(Entry)
-                    .where(
-                        Entry.account_id == request.user.id,
-                        Entry.residue != 0,
-                        Entry.expires_on > datetime.date.today(),
-                    )
-                    .order_by(Entry.expires_on, Entry.created_at)
-                )
-        return config.templates.TemplateResponse(
-            "history.html",
-            {
-                "request": request,
-                "balance": balance,
-                "history": history.all(),
-                "expirations": expirations.all(),
-            },
-        )
-
-    @requires("authenticated", redirect="sign_in")
     async def post(self, request: Request):
         form = await request.form()
         happened_on = datetime.date.fromisoformat(form["happened_on"])
         expires_on = happened_on + datetime.timedelta(
             days=request.user.organization.settings["expires_in"]
         )
+        multiplier = 1.0
         value = int(form["value"])
-        async with Session() as session:
-            async with session.begin():
-                session.add(
-                    Entry(
-                        account_id=request.user.id,
-                        happened_on=happened_on,
-                        expires_on=expires_on,
-                        value=value,
-                        residue=value,
-                        multiplier=1.0,
-                    )
-                )
-                await session.commit()
+        residue = round(value * multiplier)
+        request.db.add(
+            Entry(
+                account_id=request.user.id,
+                happened_on=happened_on,
+                expires_on=expires_on,
+                value=value,
+                residue=residue,
+                multiplier=multiplier,
+            )
+        )
+        await request.db.commit()
         request.flash["alert"] = {"message": "✅ Registro criado.", "type": "positive"}
         return RedirectResponse(url=request.url_for(name="new_entry"), status_code=303)
 
 
 class SummaryEndpoint(HTTPEndpoint):
-    def get_selected_inteval(self, value: str):
+    def get_period(self, value: str):
         try:
             a = datetime.date.fromisoformat(f"{value}-01")
         except ValueError:
@@ -226,42 +190,98 @@ class SummaryEndpoint(HTTPEndpoint):
 
     @requires(["authenticated", "manager"], redirect="sign_in")
     async def get(self, request: Request):
-        selected_interval = self.get_selected_inteval(request.query_params.get("month"))
-        async with Session() as session:
-            async with session.begin():
-                # accounts = await session.scalars(
-                #     select(Account)
-                #     .where(Account.organization_id == request.user.organization.id)
-                #     .order_by(Account.active.desc(), Account.name)
-                # )
-                summary = await session.execute(
-                    select(
-                        Account.id,
-                        Account.name,
-                        coalesce(
-                            sum(Entry.residue).filter(
-                                Entry.expires_on > datetime.date.today()
-                            ),
-                            0,
-                        ).label("today_balance"),
-                        coalesce(
-                            sum(Entry.residue).filter(
-                                Entry.expires_on.between(*selected_interval)
-                            ),
-                            0,
-                        ).label("selected_interval_balance"),
-                    )
-                    .outerjoin(Entry)
-                    .order_by(Account.name, Account.created_at)
-                    .group_by(Account.id)
-                )
+        period = self.get_period(request.query_params.get("month"))
+        summary = await request.db.execute(
+            select(
+                Account.id,
+                Account.name,
+                Account.balance,
+                Account.expiring_balance(*period),
+            )
+            .outerjoin(Account.entries)
+            .where(Account.active)
+            .group_by(Account.id)
+            .order_by(*Account.by_name)
+        )
         return config.templates.TemplateResponse(
             "summary.html",
             {
                 "request": request,
-                "management": True,
-                "summary": summary.all(),
-                "selected_interval": selected_interval,
+                "is_management": True,
+                "summary": summary,
+                "period": period,
+            },
+        )
+
+
+class AccountsEndpoint(HTTPEndpoint):
+    @requires(["authenticated", "manager"], redirect="sign_in")
+    async def get(self, request: Request):
+        accounts = await request.db.all(
+            select(Account)
+            .where(Account.of_organization(request.user.organization.id))
+            .order_by(*Account.by_name)
+        )
+        return config.templates.TemplateResponse(
+            "accounts.html",
+            {
+                "request": request,
+                "is_management": True,
+                "accounts": accounts,
+            },
+        )
+
+
+class AccountEndpoint(HTTPEndpoint):
+    @requires("authenticated", redirect="sign_in")
+    async def get(self, request: Request):
+        organization_id = request.user.organization_id
+        account_id = request.path_params.get("id", request.user.id)
+        is_management = "id" in request.path_params and request.user.is_manager
+
+        if account_id != request.user.id and not is_management:
+            raise HTTPException(status_code=404)
+
+        account = await request.db.scalar(
+            select(Account)
+            .options(orm.undefer(Account.balance))
+            .outerjoin(Account.entries)
+            .where(Account.id == account_id)
+            .group_by(Account.id)
+            .limit(1)
+        )
+
+        if is_management:
+            accounts = await request.db.all(
+                select(Account)
+                .where(Account.of_organization(organization_id))
+                .order_by(*Account.by_name)
+            )
+        else:
+            accounts = []
+
+        entries_by_date = await request.db.all(
+            select(Entry).where(Entry.of_account(account_id)).order_by(*Entry.by_date)
+        )
+
+        entries_by_expiration = await request.db.all(
+            select(Entry)
+            .where(
+                Entry.of_account(account_id),
+                Entry.active,
+            )
+            .order_by(*Entry.by_expiration)
+        )
+
+        return config.templates.TemplateResponse(
+            "account.html",
+            {
+                "request": request,
+                "is_management": is_management,
+                "accounts": accounts,
+                "account": account,
+                "entries_by_date": entries_by_date,
+                "entries_by_expiration": entries_by_expiration,
             },
         )
 
@@ -286,12 +306,15 @@ def handle_authentication_error(conn: HTTPConnection, exc: Exception):
 routes = [
     Mount("/static", StaticFiles(directory="static"), name="static"),
     Route("/", RootEndpoint, methods=["GET"], name="root"),
-    Route("/sign-in", SessionEndpoint, methods=["GET", "POST"], name="sign_in"),
+    Route("/sign-in", SessionEndpoint, methods=["GET"], name="sign_in"),
     Route("/oauth", OAuthEndpoint, methods=["GET"], name="oauth"),
-    Route("/session", SessionEndpoint, methods=["DELETE"], name="session"),
+    Route("/session", SessionEndpoint, methods=["POST", "DELETE"], name="session"),
+    Route("/entries", EntriesEndpoint, methods=["GET", "POST"], name="entries"),
     Route("/entries/new", NewEntryEndpoint, methods=["GET"], name="new_entry"),
-    Route("/history", EntriesEndpoint, methods=["GET", "POST"], name="history"),
     Route("/summary", SummaryEndpoint, methods=["GET"], name="summary"),
+    Route("/accounts", AccountsEndpoint, methods=["GET"], name="accounts"),
+    Route("/account", AccountEndpoint, methods=["GET"], name="account"),
+    Route("/accounts/{id:int}", AccountEndpoint, methods=["GET"], name="account"),
 ]
 
 # Create Starlette application.
@@ -310,6 +333,7 @@ app = Starlette(
             on_error=handle_authentication_error,
         ),
         Middleware(FlashMiddleware),
+        Middleware(DatabaseMiddleware),
     ],
     routes=routes,
     exception_handlers={
