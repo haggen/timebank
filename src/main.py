@@ -190,6 +190,7 @@ class SummaryEndpoint(HTTPEndpoint):
 
     @requires(["authenticated", "manager"], redirect="sign_in")
     async def get(self, request: Request):
+        organization_id = request.user.organization_id
         period = self.get_period(request.query_params.get("month"))
         summary = await request.db.execute(
             select(
@@ -199,7 +200,7 @@ class SummaryEndpoint(HTTPEndpoint):
                 Account.expiring_balance(*period),
             )
             .outerjoin(Account.entries)
-            .where(Account.active)
+            .where(Account.of_organization(organization_id), Account.active)
             .group_by(Account.id)
             .order_by(*Account.by_name)
         )
