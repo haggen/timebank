@@ -106,7 +106,7 @@ class OAuthEndpoint(HTTPEndpoint):
             raise HTTPException(status_code=401)
 
         account = await request.db.scalar(
-            select(Account.email).where(Account.email == userinfo["email"]).limit(1)
+            select(Account).where(Account.email == userinfo["email"]).limit(1)
         )
 
         if not account:
