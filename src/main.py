@@ -128,6 +128,7 @@ class OAuthEndpoint(HTTPEndpoint):
                 account.organization = Organization(domain=userinfo["hd"])
 
             request.db.add(account)
+
             await request.db.commit()
 
         request.session["token"] = token
@@ -287,6 +288,37 @@ class AccountEndpoint(HTTPEndpoint):
         )
 
 
+class SettingsEndpoint(HTTPEndpoint):
+    @requires(["authenticated", "manager"], redirect="sign_in")
+    async def get(self, request: Request):
+        organization = request.user.organization
+        return config.templates.TemplateResponse(
+            "settings.html",
+            {
+                "request": request,
+                "is_management": True,
+                "organization": organization,
+            },
+        )
+
+    @requires(["authenticated", "manager"], redirect="sign_in")
+    async def patch(self, request: Request):
+        organization = request.user.organization
+        form = await request.form()
+        organization.settings.update(
+            expires_in=int(form["expires_in"]),
+            holiday_multiplier=int(form["holiday_multiplier"]) / 100,
+        )
+        orm.attributes.flag_modified(organization, "settings")
+        request.db.add(organization)
+        await request.db.commit()
+        request.flash["alert"] = {
+            "message": "✅ Configurações salvas.",
+            "type": "positive",
+        }
+        return RedirectResponse(url=request.url_for(name="settings"), status_code=303)
+
+
 # Exception handler.
 async def handle_exception(request: Request, exception: HTTPException | Exception):
     try:
@@ -316,6 +348,7 @@ routes = [
     Route("/accounts", AccountsEndpoint, methods=["GET"], name="accounts"),
     Route("/account", AccountEndpoint, methods=["GET"], name="account"),
     Route("/accounts/{id:int}", AccountEndpoint, methods=["GET"], name="account"),
+    Route("/settings", SettingsEndpoint, methods=["GET", "PATCH"], name="settings"),
 ]
 
 # Create Starlette application.

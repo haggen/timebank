@@ -35,7 +35,7 @@
       </pre>
     </div>
     {% endif %} {% with alert = request.flash.alert %} {% if alert %}
-    <div role="alert" class="alert {{ alert.type }}">
+    <div role="alert" class="alert {{ alert.type }}" data-turbo-cache="false">
       <p>{{ alert.message }}</p>
       <button
         type="button"
@@ -126,10 +126,10 @@
             </li>
             <li>
               <a
-                href="{{ request.url_for('root') }}"
-                class="menu-item {{ 'active' if request.url == request.url_for('root') }}"
+                href="{{ request.url_for('settings') }}"
+                class="menu-item {{ 'active' if request.url == request.url_for('settings') }}"
               >
-                Configuração
+                Configurações
               </a>
             </li>
           </ul>

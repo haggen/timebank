@@ -66,8 +66,8 @@ class DatabaseMiddleware:
             scope["state"] = {}
 
         async with Session() as session:
-                scope["state"]["database"] = session
-                    await self.app(scope, receive, send)
+            scope["state"]["database"] = session
+            await self.app(scope, receive, send)
 
 
 Request.db = property(lambda self: self.state.database, doc="Database session.")
@@ -83,11 +83,9 @@ class Organization(Base):
     # Organizations default settings.
     # - `expires_in` is the expiration window for new entries, in days.
     # - `holiday_multiplier` is the factor by which the value of entries that happened on holidays are multiplied by.
-    # - `holiday_calendar` is the identifier of the calendar in Google Calendar that holds holidays.
     default_settings = {
         "expires_in": 90,
-        "holiday_multiplier": 1.0,
-        "holiday_calendar": "",
+        "holiday_multiplier": 2,
     }
 
     id = Column(Integer, primary_key=True)

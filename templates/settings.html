@@ -1,0 +1,50 @@
+{% extends "_layout.html" %} {% block title %}Configurações — {{ super() }}{%
+endblock %} {% block content %}
+<form
+  method="patch"
+  action="{{ request.url_for('settings') }}"
+  class="stack"
+  style="gap: 3rem"
+>
+  <label class="field">
+    <strong class="heading two">Vencimento</strong>
+    <p style="max-width: 40ch">
+      Registros expiram após uma certa quantidade de dias. O valor padrão é de
+      90 dias.
+    </p>
+    <input
+      name="expires_in"
+      type="number"
+      step="1"
+      min="0"
+      class="input"
+      autocomplete="off"
+      value="{{ organization.settings['expires_in'] }}"
+      required
+    />
+  </label>
+
+  <label class="field">
+    <strong class="heading two">Acréscimo</strong>
+    <p style="max-width: 56ch">
+      Horas extras trabalhadas em domingos e feriados possuem um acréscimo
+      maior. O valor padrão é de 200%.
+    </p>
+    <input
+      name="holiday_multiplier"
+      type="number"
+      step="5"
+      min="100"
+      class="input"
+      autocomplete="off"
+      value="{{ (organization.settings['holiday_multiplier'] * 100) | round | int }}"
+      required
+    />
+  </label>
+
+  <footer class="form-foot">
+    <button type="submit" class="button primary">Salvar</button>
+    <button type="reset" class="button secondary">Descartar</button>
+  </footer>
+</form>
+{% endblock %}
