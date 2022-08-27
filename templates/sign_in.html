@@ -1,11 +1,15 @@
 {% extends "_layout.html" %} {% block title %}Entrar — {{ super() }}{% endblock
 %} {% block content %}
 <section class="hero">
-  <header class="stack" style="gap: 0.5rem">
+  <header>
     <figure>👋</figure>
     <h1>Utilize sua conta Google Workspace.</h1>
   </header>
-  <form method="post" data-turbo="false">
+  <form
+    method="post"
+    action="{{ request.url_for('session') }}"
+    data-turbo="false"
+  >
     <button type="submit" class="button primary">Entrar</button>
   </form>
 </section>
