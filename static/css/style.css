@@ -18,7 +18,7 @@ p {
 .alert {
   align-items: start;
   background-color: var(--oc-yellow-0);
-  border-radius: 0.5rem;
+  border-radius: 0.25rem;
   border: 1px solid currentColor;
   color: var(--oc-yellow-8);
   display: flex;
