@@ -250,7 +250,7 @@ p {
 
 .input {
   background-color: white;
-  border: 1px solid var(--oc-gray-6);
+  border: 1px solid var(--oc-gray-4);
   padding-inline: 0.5rem;
 }
 
@@ -287,7 +287,7 @@ p {
   width: 1rem;
   height: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid;
+  border: 1px solid var(--oc-gray-4);
   background-color: white;
   vertical-align: middle;
 }
@@ -340,11 +340,12 @@ p {
 }
 
 .text.linked {
-  background: linear-gradient(
+  /* background: linear-gradient(
     0,
     var(--oc-yellow-0) 0.5rem,
     transparent 0.25rem
-  );
+  ); */
+  text-decoration: underline 1px;
 }
 
 .text.linked:focus,
