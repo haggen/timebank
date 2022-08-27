@@ -66,16 +66,8 @@ class DatabaseMiddleware:
             scope["state"] = {}
 
         async with Session() as session:
-            async with session.begin():
                 scope["state"]["database"] = session
-
-                try:
                     await self.app(scope, receive, send)
-                except:
-                    await session.rollback()
-                    raise
-                else:
-                    await session.commit()
 
 
 Request.db = property(lambda self: self.state.database, doc="Database session.")
