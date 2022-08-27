@@ -1,5 +1,5 @@
-{% extends "_layout.html" %} {% block title %}Visão geral — {{ super() }}{%
-endblock %} {% block content %}
+{% extends "_layout.html" %} {% block title %}{{ "Conta" if is_management else
+"Resumo" }} — {{ super() }}{% endblock %} {% block content %}
 <div class="columns">
   {% if is_management %} {% include "_accounts_nav.html" %} {% endif %}
   <div style="grid-column: span 3">
