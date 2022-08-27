@@ -3,7 +3,7 @@ FROM python:3.10-alpine
 
 # Install dumb-init.
 # @see https://github.com/Yelp/dumb-init
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init build-base
 
 # Install pipenv.
 # @see https://pipenv.pypa.io/en/latest/
