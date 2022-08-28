@@ -366,8 +366,7 @@ app = Starlette(
         Middleware(
             SessionMiddleware,
             secret_key=config.SECRET_KEY,
-            same_site="lax" if config.DEBUG else "strict",
-            https_only=not config.DEBUG,
+            https_only=True,
         ),
         Middleware(
             AuthenticationMiddleware,
