@@ -155,12 +155,20 @@ class NewEntryEndpoint(HTTPEndpoint):
 class EntriesEndpoint(HTTPEndpoint):
     @requires("authenticated", redirect="sign_in")
     async def post(self, request: Request):
+        organization = request.user.organization
         form = await request.form()
         happened_on = datetime.date.fromisoformat(form["happened_on"])
         expires_on = happened_on + datetime.timedelta(
-            days=request.user.organization.settings["expires_in"]
+            days=organization.settings["expires_in"]
         )
         multiplier = 1.0
+        if happened_on.weekday == 6:
+            multiplier = organization.settings["holiday_multiplier"]
+        else:
+            google = Google(request)
+            if google.is_holiday(happened_on):
+                multiplier = organization.settings["holiday_multiplier"]
+
         value = int(form["value"])
         residue = round(value * multiplier)
         request.db.add(
