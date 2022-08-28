@@ -33,7 +33,7 @@ import config
 Base = declarative_base()
 
 # Database engine.
-engine = create_async_engine(str(config.DATABASE_URL), echo=True, future=True)
+engine = create_async_engine(str(config.DATABASE_URL), echo=config.DEBUG, future=True)
 
 # Database session.
 Session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
