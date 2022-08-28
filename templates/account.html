@@ -85,7 +85,10 @@
               <td class="text {{ 'striked grayed' if entry.is_expired }}">
                 {{ entry.expires_on | datetime("%d/%m/%Y") }}
               </td>
-              <td>{{ entry.value | entryvalue }}</td>
+              <td>
+                {{ entry.value | entryvalue }} {{ "×" + entry.multiplier |
+                string if entry.multiplier > 1 }}
+              </td>
               <td>{{ entry.residue | entryvalue }}</td>
             </tr>
             {% endfor %}
