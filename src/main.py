@@ -36,15 +36,15 @@ class BasicAuthBackend(AuthenticationBackend):
     async def authenticate(self, conn):
         async with Session() as session:
             try:
-            account = await session.scalar(
-                select(Account)
-                .options(orm.joinedload(Account.organization))
-                .where(Account.email == conn.session["email"])
-                .limit(1)
-            )
+                account = await session.scalar(
+                    select(Account)
+                    .options(orm.joinedload(Account.organization))
+                    .where(Account.email == conn.session["email"])
+                    .limit(1)
+                )
                 return AuthCredentials(["authenticated", account.role]), account
             except (KeyError, AttributeError):
-            return AuthCredentials(), UnauthenticatedUser()
+                return AuthCredentials(), UnauthenticatedUser()
 
 
 class RootEndpoint(HTTPEndpoint):
@@ -317,7 +317,7 @@ class SettingsEndpoint(HTTPEndpoint):
         request.db.add(organization)
         await request.db.commit()
         request.flash["alert"] = {
-            "message": "✅ Configurações salvas.",
+            "message": "✅ Configuração atualizada.",
             "type": "positive",
         }
         return RedirectResponse(url=request.url_for(name="settings"), status_code=303)
@@ -369,8 +369,8 @@ app = Starlette(
             backend=BasicAuthBackend(),
             on_error=handle_authentication_error,
         ),
-        Middleware(FlashMiddleware),
         Middleware(DatabaseMiddleware),
+        Middleware(FlashMiddleware),
     ],
     routes=routes,
     exception_handlers={
