@@ -34,21 +34,17 @@ log = logging.getLogger("starlette")
 # Authentication backend.
 class BasicAuthBackend(AuthenticationBackend):
     async def authenticate(self, conn):
-        if not "email" in conn.session:
-            return AuthCredentials(), UnauthenticatedUser()
-
         async with Session() as session:
+            try:
             account = await session.scalar(
                 select(Account)
                 .options(orm.joinedload(Account.organization))
                 .where(Account.email == conn.session["email"])
                 .limit(1)
             )
-
-        if not account:
+                return AuthCredentials(["authenticated", account.role]), account
+            except (KeyError, AttributeError):
             return AuthCredentials(), UnauthenticatedUser()
-
-        return AuthCredentials(["authenticated", account.role]), account
 
 
 class RootEndpoint(HTTPEndpoint):
