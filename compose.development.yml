@@ -1,20 +1,19 @@
 services:
-  proxy:
-    profiles:
-      - proxy
-    image: traefik:2.8
-    ports:
-      - 80:80
-      - 8080:8080
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock
-    command:
-      - --providers.docker.defaultrule=Host(`{{ normalize .Name }}.localhost`)
-      - --api.insecure=true
   web:
+    networks:
+      - default
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.timebank.rule=Host(`timebank.local.crz.li`)"
+      - "traefik.http.routers.timebank.tls=true"
     ports:
       - 5678:5678
     volumes:
       - .:/root/src
     command: |
       python -m debugpy --listen 0.0.0.0:5678 src/main.py
+
+networks:
+  traefik:
+    external: true
